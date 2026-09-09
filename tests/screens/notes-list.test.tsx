@@ -1,9 +1,9 @@
 import { screen } from '@testing-library/react-native';
 
 import type { Note } from '@/db/types';
-import { render } from '../../../tests/support/render';
+import { render } from '../support/render';
 
-import NotesScreen from './index';
+import NotesScreen from '@/app/(tabs)/index';
 
 const NOW = new Date(2026, 8, 9, 14, 32).getTime();
 

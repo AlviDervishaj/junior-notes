@@ -26,10 +26,12 @@ module.exports = {
     {
       displayName: 'native',
       preset: 'jest-expo',
+      // Screen tests live in tests/screens, NOT src/app: expo-router turns
+      // every file under src/app into a navigable route, test files included.
       testMatch: [
         '<rootDir>/src/components/**/*.test.tsx',
         '<rootDir>/src/hooks/**/*.test.tsx',
-        '<rootDir>/src/app/**/*.test.tsx',
+        '<rootDir>/tests/screens/**/*.test.tsx',
       ],
       moduleNameMapper,
       setupFilesAfterEnv: ['<rootDir>/tests/setup-native.ts'],
