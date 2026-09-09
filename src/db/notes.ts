@@ -1,3 +1,4 @@
+import { escapeLike, LIKE_ESCAPE_CHAR } from '@/lib/like';
 import type { NoteCategory } from '@/theme/categories';
 
 import { rowToNote, type Note, type NoteRow, type SqlDb, type SqlValue } from './types';
@@ -124,4 +125,30 @@ export async function purgeOldDeleted(
     [now - maxAgeMs]
   );
   return result.changes;
+}
+
+/**
+ * Case-insensitive substring search over title and body.
+ *
+ * LIKE with a bound parameter — the query is never interpolated. If note counts
+ * ever make this slow, the migration path is an FTS5 virtual table synced by
+ * trigger, which would change only this function (spec §6).
+ *
+ * LIKE_ESCAPE_CHAR is a module constant rather than user input, so embedding it
+ * in the SQL text is safe; the search term itself is bound.
+ */
+export async function searchNotes(db: SqlDb, query: string): Promise<Note[]> {
+  const trimmed = query.trim();
+  if (trimmed === '') return [];
+
+  const pattern = `%${escapeLike(trimmed)}%`;
+  const rows = await db.getAllAsync<NoteRow>(
+    `${SELECT_NOTE}
+     WHERE deleted_at IS NULL
+       AND (title LIKE ? ESCAPE '${LIKE_ESCAPE_CHAR}'
+         OR body  LIKE ? ESCAPE '${LIKE_ESCAPE_CHAR}')
+     ORDER BY updated_at DESC`,
+    [pattern, pattern]
+  );
+  return rows.map(rowToNote);
 }
