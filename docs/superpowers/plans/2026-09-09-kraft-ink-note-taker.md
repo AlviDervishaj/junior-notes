@@ -732,6 +732,14 @@ The `SqlDb` interface is the seam that makes the data layer testable: `expo-sqli
   - `DATABASE_VERSION: number`, `migrate(db: SqlDb): Promise<void>`
   - `createTestDb(): SqlDb` (test support only)
 
+- [ ] **Step 0: Install expo-sqlite**
+
+```bash
+npx expo install expo-sqlite
+```
+
+The template does not ship it, and it registers a config plugin in `app.json`.
+
 - [ ] **Step 1: Create `src/db/types.ts`**
 
 ```ts
@@ -739,16 +747,23 @@ import { isNoteCategory, type NoteCategory } from '@/theme/categories';
 
 export type SqlRunResult = { lastInsertRowId: number; changes: number };
 
+/** Values SQLite can bind. Mirrors expo-sqlite's SQLiteBindValue, minus blobs. */
+export type SqlValue = string | number | null | boolean;
+
 /**
  * The narrow slice of expo-sqlite's SQLiteDatabase this app uses.
  * Declared as an interface so tests can inject a node:sqlite adapter and the
  * db layer never imports expo-sqlite directly.
+ *
+ * `params` is REQUIRED, not optional: expo-sqlite's overloads type it as a
+ * non-optional SQLiteBindParams, so an optional parameter here is not
+ * assignable from the real database. Call sites with no parameters pass `[]`.
  */
 export interface SqlDb {
-  execAsync(sql: string): Promise<void>;
-  runAsync(sql: string, params?: unknown[]): Promise<SqlRunResult>;
-  getAllAsync<T>(sql: string, params?: unknown[]): Promise<T[]>;
-  getFirstAsync<T>(sql: string, params?: unknown[]): Promise<T | null>;
+  execAsync(source: string): Promise<void>;
+  runAsync(source: string, params: SqlValue[]): Promise<SqlRunResult>;
+  getAllAsync<T>(source: string, params: SqlValue[]): Promise<T[]>;
+  getFirstAsync<T>(source: string, params: SqlValue[]): Promise<T | null>;
 }
 
 export type NoteRow = {
@@ -790,7 +805,7 @@ export function rowToNote(row: NoteRow): Note {
 
 ```ts
 import { DatabaseSync } from 'node:sqlite';
-import type { SqlDb, SqlRunResult } from '@/db/types';
+import type { SqlDb, SqlRunResult, SqlValue } from '@/db/types';
 
 /**
  * Wraps Node's built-in synchronous SQLite in the async SqlDb interface so the
@@ -803,21 +818,21 @@ export function createTestDb(): SqlDb {
   const db = new DatabaseSync(':memory:');
 
   return {
-    async execAsync(sql: string): Promise<void> {
-      db.exec(sql);
+    async execAsync(source: string): Promise<void> {
+      db.exec(source);
     },
-    async runAsync(sql: string, params: unknown[] = []): Promise<SqlRunResult> {
-      const result = db.prepare(sql).run(...(params as never[]));
+    async runAsync(source: string, params: SqlValue[]): Promise<SqlRunResult> {
+      const result = db.prepare(source).run(...(params as never[]));
       return {
         lastInsertRowId: Number(result.lastInsertRowid),
         changes: Number(result.changes),
       };
     },
-    async getAllAsync<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-      return db.prepare(sql).all(...(params as never[])) as T[];
+    async getAllAsync<T>(source: string, params: SqlValue[]): Promise<T[]> {
+      return db.prepare(source).all(...(params as never[])) as T[];
     },
-    async getFirstAsync<T>(sql: string, params: unknown[] = []): Promise<T | null> {
-      return (db.prepare(sql).get(...(params as never[])) as T | undefined) ?? null;
+    async getFirstAsync<T>(source: string, params: SqlValue[]): Promise<T | null> {
+      return (db.prepare(source).get(...(params as never[])) as T | undefined) ?? null;
     },
   };
 }
@@ -833,7 +848,7 @@ import { DATABASE_VERSION, migrate } from '@/db/migrations';
 import type { SqlDb } from '@/db/types';
 
 const userVersion = async (db: SqlDb) =>
-  (await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))?.user_version ?? 0;
+  (await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version', []))?.user_version ?? 0;
 
 describe('migrate', () => {
   test('a fresh database starts at version 0', async () => {
@@ -849,7 +864,7 @@ describe('migrate', () => {
   test('creates the notes table with the expected columns', async () => {
     const db = createTestDb();
     await migrate(db);
-    const cols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(notes)');
+    const cols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(notes)', []);
     expect(cols.map((c) => c.name).sort()).toEqual(
       ['body', 'category', 'created_at', 'deleted_at', 'id', 'pinned', 'title', 'updated_at'].sort()
     );
@@ -859,7 +874,8 @@ describe('migrate', () => {
     const db = createTestDb();
     await migrate(db);
     const idx = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='notes'"
+      "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='notes'",
+      []
     );
     expect(idx.map((i) => i.name)).toContain('idx_notes_active');
   });
@@ -876,7 +892,8 @@ describe('migrate', () => {
     await migrate(db);
     await db.runAsync('INSERT INTO notes (created_at, updated_at) VALUES (?, ?)', [1, 1]);
     const row = await db.getFirstAsync<{ title: string; body: string; pinned: number }>(
-      'SELECT title, body, pinned FROM notes'
+      'SELECT title, body, pinned FROM notes',
+      []
     );
     expect(row).toEqual({ title: '', body: '', pinned: 0 });
   });
@@ -904,7 +921,7 @@ export const DATABASE_VERSION = 1;
 export async function migrate(db: SqlDb): Promise<void> {
   await db.execAsync(`PRAGMA journal_mode = 'wal';`);
 
-  const result = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+  const result = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version', []);
   let version = result?.user_version ?? 0;
 
   if (version >= DATABASE_VERSION) return;
@@ -1330,7 +1347,8 @@ export async function listNotes(db: SqlDb): Promise<Note[]> {
   const rows = await db.getAllAsync<NoteRow>(
     `${SELECT_NOTE}
      WHERE deleted_at IS NULL
-     ORDER BY pinned DESC, updated_at DESC`
+     ORDER BY pinned DESC, updated_at DESC`,
+    []
   );
   return rows.map(rowToNote);
 }
@@ -4032,6 +4050,17 @@ git commit -m "chore: remove template scaffolding superseded by Kraft & Ink"
 No spec requirement is unassigned.
 
 **Type consistency:** `SqlDb` (Task 5) is consumed unchanged by Tasks 6–8. `Note` field names (`createdAt`, `updatedAt`, `pinned: boolean`) are used consistently in Tasks 6, 7, 12, 15, 16. `SaveStatus` values `idle|saving|saved|unsaved` (Task 9) match `STATUS_TEXT` keys in Task 16. `formatNoteDate(ts, now)` keeps its two-argument shape in Tasks 4, 12, 16. `createTestDb()` normalises node:sqlite's `lastInsertRowid` to expo's `lastInsertRowId`, matching `SqlRunResult`.
+
+**Fixed during Task 5 execution:** two gaps in the data layer. (a) No task
+installed `expo-sqlite` — added as Task 5 Step 0. (b) `SqlDb` declared
+`params?: unknown[]`, which the real `SQLiteDatabase` is **not** assignable to,
+because expo types the parameter as a non-optional `SQLiteBindParams`. The
+interface now uses a required `params: SqlValue[]`, every no-parameter query
+passes `[]`, and `src/db/types.test.ts` carries a type-level guard
+(`Assert<SQLiteDatabase extends SqlDb ? true : false>`) that was verified to
+fail `tsc` when the two diverge. The guard must stay type-only — a value
+assignment throws at runtime, since there is no `SQLiteDatabase` to construct
+in a Node test environment.
 
 **Fixed during Task 1 execution:** `@testing-library/react-native` v14 turned out to be fully async and to have dropped the `extend-expect` entry point. Every component and hook test in Tasks 11–18 was rewritten to `await` the RNTL calls with `async` test callbacks, and the two new Global Constraints above were added. This was discovered by running the Task 1 smoke test, which is exactly what that task exists for.
 
