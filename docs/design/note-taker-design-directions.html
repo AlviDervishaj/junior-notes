@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Note Taker — Design Directions</title>
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: "Avenir Next", sans-serif; color: #2b2b2b; }
+
+  .page {
+    width: 794px; height: 1123px; padding: 46px 52px;
+    page-break-after: always; position: relative; overflow: hidden;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* ---------- shared page furniture ---------- */
+  .kicker { font: 500 9.5px/1 "Avenir Next"; letter-spacing: .22em; text-transform: uppercase; color: #9a9287; }
+  .pagenum { position: absolute; bottom: 30px; right: 52px; font: 400 9px "Avenir Next"; letter-spacing: .18em; color: #b3aca2; }
+  .rule { height: 1px; background: #ded8cf; margin: 14px 0 22px; }
+  h1.title { font: 400 40px/1.05 "Hoefler Text", serif; margin: 10px 0 6px; letter-spacing: -.01em; }
+  .tagline { font: italic 400 15px/1.4 "Hoefler Text", serif; color: #6f6558; margin: 0 0 4px; max-width: 620px; }
+
+  .cols { display: flex; flex-direction: column; margin-top: 20px; }
+  .mockups {
+    display: flex; gap: 18px; width: 100%; justify-content: center;
+    transform: scale(1.2); transform-origin: top center; margin-bottom: 122px;
+  }
+  .side { display: flex; flex-wrap: wrap; gap: 20px 24px; align-items: flex-start; }
+  .side .blk { margin-bottom: 0; }
+  .side .blk:nth-child(1) { order: 1; width: 198px; }   /* palette */
+  .side .blk:nth-child(2) { order: 2; width: 212px; }   /* type */
+  .side .blk:nth-child(4) { order: 3; flex: 1; }        /* home quote */
+  .side .blk:nth-child(3) { order: 4; width: 100%; }    /* the idea */
+  .side .blk:nth-child(3) p { max-width: 660px; }
+
+  .caption { font: 500 8px/1 "Avenir Next"; letter-spacing: .16em; text-transform: uppercase; color: #a49c92; text-align: center; margin-top: 9px; }
+
+  .swatches { display: flex; gap: 0; border-radius: 3px; overflow: hidden; border: 1px solid rgba(0,0,0,.10); }
+  .sw { flex: 1; height: 46px; position: relative; }
+  .hexlist { display: flex; flex-wrap: wrap; gap: 3px 10px; margin-top: 7px; }
+  .hexlist span { font: 400 8px "Menlo", monospace; color: #8d857b; }
+
+  .blk { margin-bottom: 20px; }
+  .blk h3 { font: 500 8.5px/1 "Avenir Next"; letter-spacing: .2em; text-transform: uppercase; color: #a2998e; margin: 0 0 9px; }
+  .blk p { font: 400 11.5px/1.62 "Charter", Georgia, serif; color: #4a443c; margin: 0 0 8px; }
+  .blk p b { font-weight: 700; color: #2f2a24; }
+  .home { border-left: 2px solid #d8ceb9; padding-left: 11px; }
+  .home p { font: italic 400 11.5px/1.6 "Charter", Georgia, serif; color: #5d564c; }
+
+  .specimen { border: 1px solid #e6e0d6; border-radius: 3px; padding: 12px 14px; background: #fdfbf7; }
+  .specimen .big { font-size: 25px; line-height: 1.1; margin-bottom: 5px; }
+  .specimen .sml { font-size: 10.5px; line-height: 1.5; color: #6f675c; }
+  .specimen .lbl { font: 400 8px "Menlo", monospace; color: #aaa298; margin-top: 8px; }
+
+  /* ---------- phone shell ---------- */
+  .phone {
+    width: 244px; height: 505px; border-radius: 30px; padding: 5px;
+    background: #2a2723; box-shadow: 0 3px 14px rgba(0,0,0,.20);
+    flex: 0 0 auto;
+  }
+  .screen { width: 100%; height: 100%; border-radius: 25px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+  .sb { height: 24px; flex: 0 0 auto; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 16px 3px; font-size: 8.5px; font-weight: 600; }
+  .sb .dots { letter-spacing: 1px; }
+  .scr-body { flex: 1; overflow: hidden; position: relative; }
+  .tabs { flex: 0 0 auto; }
+
+  /* ============================================================
+     1 — KRAFT & INK
+     ============================================================ */
+  .kraft { --paper:#EDE3CE; --card:#F7F0E1; --kraft:#B08A57; --ink:#22303F; --brick:#9C4A33; --rule:#D6C8AC; --dim:#8A7C64; }
+  .kraft .screen { background: var(--paper); font-family: "Futura", sans-serif; }
+  .kraft .sb { background: var(--kraft); color: #FBF5E9; }
+  .kraft .k-head { background: var(--kraft); padding: 10px 16px 13px; color: #FBF5E9; }
+  .kraft .k-stamp { display: inline-block; border: 1.5px solid rgba(251,245,233,.75); border-radius: 2px; padding: 2px 7px; font: 500 7px "Futura"; letter-spacing: .2em; transform: rotate(-1.4deg); }
+  .kraft .k-title { font: 500 20px "Futura"; letter-spacing: .01em; margin-top: 9px; }
+  .kraft .k-sub { font: 400 8.5px "Futura"; letter-spacing: .14em; opacity: .78; margin-top: 3px; text-transform: uppercase; }
+  .kraft .dotgrid { background-image: radial-gradient(var(--rule) .8px, transparent .8px); background-size: 11px 11px; }
+  .kraft .k-row { margin: 9px 13px 0; background: var(--card); border-radius: 3px; padding: 9px 11px; border: .8px solid #E0D4B9; box-shadow: 0 .8px 0 rgba(0,0,0,.05); }
+  .kraft .k-row .t { font: 500 11.5px "Futura"; color: var(--ink); }
+  .kraft .k-row .x { font: 400 9px/1.45 "Courier New", monospace; color: var(--dim); margin-top: 3px; }
+  .kraft .k-row .m { display: flex; justify-content: space-between; margin-top: 6px; align-items: center; }
+  .kraft .k-date { font: 400 7px "Courier New", monospace; letter-spacing: .1em; color: #A4957B; text-transform: uppercase; }
+  .kraft .k-pin { font: 500 6.5px "Futura"; letter-spacing: .13em; color: #FBF5E9; background: var(--brick); padding: 2px 5px; border-radius: 2px; }
+  .kraft .tabs { background: var(--card); border-top: .8px solid #DDD0B4; display: flex; padding: 8px 0 11px; }
+  .kraft .tabs div { flex: 1; text-align: center; font: 500 7px "Futura"; letter-spacing: .13em; color: #A6947A; }
+  .kraft .tabs div.on { color: var(--brick); }
+  .kraft .tabs .ic { font-size: 12px; display: block; margin-bottom: 3px; letter-spacing: 0; }
+  .kraft .k-fab { position: absolute; right: 14px; bottom: 14px; width: 40px; height: 40px; border-radius: 50%; background: var(--brick); color: #FBF5E9; font: 400 22px/40px "Futura"; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.22); }
+  .kraft .ed-h { background: var(--kraft); color: #FBF5E9; padding: 8px 14px 10px; display: flex; justify-content: space-between; font: 500 8.5px/1.6 "Futura"; letter-spacing: .1em; }
+  .kraft .ed-t { font: 500 17px "Futura"; color: var(--ink); padding: 14px 16px 2px; }
+  .kraft .ed-meta { font: 400 7.5px "Courier New", monospace; letter-spacing: .12em; color: #A4957B; padding: 0 16px 10px; text-transform: uppercase; }
+  .kraft .ed-b { font: 400 10px/1.85 "Courier New", monospace; color: #3A4653; padding: 0 16px; }
+
+  /* ============================================================
+     2 — LEATHER & CREAM
+     ============================================================ */
+  .leather { --hide:#4E3221; --hide2:#63402A; --cream:#F6F0E2; --page:#FBF7EC; --gold:#C29B33; --ink:#2A2118; --ribbon:#8B2C2C; --dim:#94836C; }
+  .leather .screen { background: var(--cream); font-family: "Baskerville", serif; }
+  .leather .sb { background: var(--hide); color: #EFE3CE; }
+  .leather .l-head { background: linear-gradient(174deg, var(--hide2), var(--hide)); padding: 13px 18px 15px; color: #F2E7D2; position: relative; }
+  .leather .l-head:after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--gold); opacity: .55; }
+  .leather .l-mono { font: 400 8px "Baskerville"; letter-spacing: .34em; text-transform: uppercase; color: var(--gold); }
+  .leather .l-title { font: italic 400 25px "Hoefler Text", serif; margin-top: 6px; letter-spacing: -.005em; }
+  .leather .l-rule { width: 26px; height: .8px; background: var(--gold); margin-top: 9px; }
+  .leather .l-row { padding: 12px 18px 11px; border-bottom: .7px solid #E5DCC7; position: relative; }
+  .leather .l-row.on { background: var(--page); }
+  .leather .l-row.on:before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2.5px; background: var(--ribbon); }
+  .leather .l-row .t { font: 400 13.5px "Baskerville"; color: var(--ink); }
+  .leather .l-row .x { font: 400 9.5px/1.5 "Baskerville"; color: var(--dim); margin-top: 3px; }
+  .leather .l-row .d { font: 400 7px "Baskerville"; letter-spacing: .2em; text-transform: uppercase; color: #B0A088; margin-top: 6px; }
+  .leather .tabs { background: var(--hide); display: flex; padding: 9px 0 12px; }
+  .leather .tabs div { flex: 1; text-align: center; font: 400 7px "Baskerville"; letter-spacing: .19em; text-transform: uppercase; color: #A08D71; }
+  .leather .tabs div.on { color: var(--gold); }
+  .leather .tabs .ic { font-size: 11px; display: block; margin-bottom: 4px; letter-spacing: 0; }
+  .leather .ed-h { background: linear-gradient(174deg, var(--hide2), var(--hide)); color: #EFE3CE; padding: 9px 16px 11px; display: flex; justify-content: space-between; align-items: center; font: 400 9px "Baskerville"; letter-spacing: .1em; }
+  .leather .ed-h .g { color: var(--gold); }
+  .leather .ed-body { background: var(--page); height: 100%; padding: 20px 20px 0; position: relative; }
+  .leather .ed-body:before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(90deg, rgba(0,0,0,.055), transparent); }
+  .leather .ed-t { font: 400 19px/1.2 "Hoefler Text", serif; color: var(--ink); }
+  .leather .ed-orn { text-align: left; color: var(--gold); font-size: 10px; letter-spacing: .3em; margin: 9px 0 12px; }
+  .leather .ed-p { font: 400 11px/1.78 "Baskerville"; color: #3B3226; margin: 0 0 9px; }
+  .leather .ed-p .dc { float: left; font: 400 30px/.82 "Hoefler Text", serif; padding: 2px 5px 0 0; color: var(--ribbon); }
+  .leather .ed-f { position: absolute; bottom: 12px; left: 20px; right: 20px; display: flex; justify-content: space-between; font: 400 7px "Baskerville"; letter-spacing: .2em; text-transform: uppercase; color: #B5A48A; }
+
+  /* ============================================================
+     3 — CARD CATALOG
+     ============================================================ */
+  .catalog { --manila:#DFCFA8; --card:#FBF6E9; --ox:#7B2E2E; --ink:#2E3B44; --redline:#C2584A; --blueline:#A9C0CE; --pencil:#6C665A; }
+  .catalog .screen { background: var(--manila); font-family: "American Typewriter", serif; }
+  .catalog .sb { background: #C9B688; color: #4A4032; }
+  .catalog .c-head { background: var(--manila); padding: 9px 14px 0; }
+  .catalog .c-plate { background: var(--ink); color: #F2EAD7; padding: 6px 10px; border-radius: 2px; display: flex; justify-content: space-between; align-items: center; }
+  .catalog .c-plate .t { font: 400 11px "American Typewriter"; letter-spacing: .13em; text-transform: uppercase; }
+  .catalog .c-plate .n { font: 400 8px "American Typewriter"; opacity: .7; }
+  .catalog .c-tabs { display: flex; gap: 3px; padding: 9px 14px 0; }
+  .catalog .c-tabs span { font: 400 7px "American Typewriter"; letter-spacing: .1em; padding: 3px 7px 4px; background: #CBB88C; color: #6A5C43; border-radius: 2px 2px 0 0; }
+  .catalog .c-tabs span.on { background: var(--card); color: var(--ox); }
+  .catalog .c-card { background: var(--card); margin: 8px 14px 0; border-radius: 1.5px; border: .7px solid #CFBE97; box-shadow: 0 1px 0 rgba(0,0,0,.07); padding: 0 0 8px; position: relative;
+    background-image: repeating-linear-gradient(180deg, transparent 0 15px, var(--blueline) 15px 15.6px); background-position: 0 22px; }
+  .catalog .c-card .top { border-bottom: 1.1px solid var(--redline); padding: 6px 10px 4px; display: flex; justify-content: space-between; align-items: baseline; background: var(--card); }
+  .catalog .c-card .cn { font: 400 7px "American Typewriter"; letter-spacing: .12em; color: var(--ox); }
+  .catalog .c-card .dt { font: 400 6.5px "American Typewriter"; letter-spacing: .1em; color: #9C907A; }
+  .catalog .c-card .t { font: 400 12px "American Typewriter"; color: var(--ink); padding: 5px 10px 0; }
+  .catalog .c-card .x { font: 400 9px/1.72 "American Typewriter"; color: var(--pencil); padding: 1px 10px 0; }
+  .catalog .c-stamp { position: absolute; right: 8px; bottom: 6px; font: 400 6px "American Typewriter"; letter-spacing: .12em; color: var(--ox); border: 1px solid var(--ox); border-radius: 2px; padding: 1.5px 4px; transform: rotate(-3deg); opacity: .8; }
+  .catalog .tabs { background: var(--ink); display: flex; padding: 8px 0 11px; }
+  .catalog .tabs div { flex: 1; text-align: center; font: 400 6.5px "American Typewriter"; letter-spacing: .13em; text-transform: uppercase; color: #93A2AC; }
+  .catalog .tabs div.on { color: #F2EAD7; }
+  .catalog .tabs .ic { font-size: 11px; display: block; margin-bottom: 3px; letter-spacing: 0; }
+  .catalog .ed-h { background: var(--ink); color: #F2EAD7; padding: 8px 13px 10px; display: flex; justify-content: space-between; font: 400 8.5px "American Typewriter"; letter-spacing: .1em; }
+  .catalog .ed-card { background: var(--card); margin: 11px; height: calc(100% - 22px); border-radius: 1.5px; border: .7px solid #CFBE97; padding: 0 0 10px; position: relative;
+    background-image: repeating-linear-gradient(180deg, transparent 0 16px, var(--blueline) 16px 16.6px); background-position: 0 30px; }
+  .catalog .ed-card .top { border-bottom: 1.1px solid var(--redline); padding: 7px 11px 5px; display: flex; justify-content: space-between; background: var(--card); }
+  .catalog .ed-card .t { font: 400 14px "American Typewriter"; color: var(--ink); padding: 8px 11px 0; }
+  .catalog .ed-card .b { font: 400 9.5px/1.68 "American Typewriter"; color: #453E33; padding: 4px 11px 0; }
+  .catalog .ed-slip { position: absolute; bottom: 9px; left: 11px; right: 11px; border-top: .7px dashed #C9B78F; padding-top: 5px; display: flex; justify-content: space-between; font: 400 6.5px "American Typewriter"; letter-spacing: .1em; color: #9C907A; }
+
+  /* ============================================================
+     4 — RECIPE TIN
+     ============================================================ */
+  .tin { --cream:#FCF3DE; --card:#FFFBF0; --tomato:#C24B3C; --sage:#7A8C66; --butter:#E4AE45; --cocoa:#463629; --dim:#9C8B72; }
+  .tin .screen { background: var(--cream); font-family: "Charter", Georgia, serif; }
+  .tin .sb { background: var(--tomato); color: #FFF4E2; }
+  .tin .t-head { background: var(--tomato); padding: 0 0 12px; color: #FFF6E6; position: relative; }
+  .tin .ticking { height: 9px; background: repeating-linear-gradient(90deg, rgba(255,246,230,.28) 0 3px, transparent 3px 9px); }
+  .tin .t-title { font: 700 21px "Chalkboard SE", cursive; padding: 9px 16px 0; letter-spacing: -.01em; }
+  .tin .t-sub { font: 400 8px "Charter", Georgia, serif; letter-spacing: .18em; text-transform: uppercase; opacity: .85; padding: 4px 16px 0; }
+  .tin .t-scal { height: 7px; background: radial-gradient(circle at 5px -2px, var(--tomato) 5px, transparent 5.5px) 0 0/10px 7px repeat-x; }
+  .tin .t-card { background: var(--card); margin: 9px 13px 0; border-radius: 4px; border: .8px solid #EFE1C4; box-shadow: 0 1.2px 0 rgba(70,54,41,.07); padding: 9px 11px 10px; position: relative; }
+  .tin .t-card .cat { font: 700 6.5px "Charter", Georgia, serif; letter-spacing: .16em; text-transform: uppercase; color: #FFF6E6; background: var(--sage); padding: 2px 6px; border-radius: 8px; display: inline-block; }
+  .tin .t-card .cat.b { background: var(--butter); color: #5A4520; }
+  .tin .t-card .t { font: 700 12.5px "Charter", Georgia, serif; color: var(--cocoa); margin-top: 6px; }
+  .tin .t-card .x { font: 400 9.5px/1.55 "Charter", Georgia, serif; color: var(--dim); margin-top: 3px; }
+  .tin .t-card .d { font: 400 7px "Charter", Georgia, serif; letter-spacing: .14em; text-transform: uppercase; color: #BCAA8D; margin-top: 7px; }
+  .tin .t-hand { position: absolute; right: 10px; top: 10px; font: 400 12px "Marker Felt", cursive; color: var(--tomato); transform: rotate(6deg); }
+  .tin .tabs { background: var(--card); border-top: .8px solid #EEDFC0; display: flex; padding: 8px 0 11px; }
+  .tin .tabs div { flex: 1; text-align: center; font: 700 6.5px "Charter", Georgia, serif; letter-spacing: .13em; text-transform: uppercase; color: #BCAA8D; }
+  .tin .tabs div.on { color: var(--tomato); }
+  .tin .tabs .ic { font-size: 12px; display: block; margin-bottom: 3px; letter-spacing: 0; }
+  .tin .ed-h { background: var(--tomato); color: #FFF6E6; padding: 8px 14px 10px; display: flex; justify-content: space-between; font: 700 8.5px "Charter", Georgia, serif; letter-spacing: .1em; }
+  .tin .ed-card { background: var(--card); margin: 12px; height: calc(100% - 24px); border-radius: 5px; border: .8px solid #EFE1C4; padding: 14px 15px; position: relative; }
+  .tin .ed-t { font: 700 20px/1.15 "Chalkboard SE", cursive; color: var(--cocoa); }
+  .tin .ed-dash { height: 1px; background: repeating-linear-gradient(90deg, var(--butter) 0 4px, transparent 4px 8px); margin: 10px 0 11px; }
+  .tin .ed-li { font: 400 10px/1.85 "Charter", Georgia, serif; color: #4E4032; }
+  .tin .ed-li b { color: var(--sage); font-weight: 700; }
+  .tin .ed-note { font: 400 10px/1.4 "Marker Felt", cursive; color: var(--tomato); margin-top: 12px; transform: rotate(-1deg); }
+  .tin .ed-f { position: absolute; bottom: 11px; left: 15px; right: 15px; display: flex; justify-content: space-between; font: 400 7px "Charter", Georgia, serif; letter-spacing: .15em; text-transform: uppercase; color: #C0AE91; }
+
+  /* ============================================================
+     5 — MID-CENTURY STATIONERY
+     ============================================================ */
+  .mid { --bone:#F0E8D8; --card:#FAF5EA; --mustard:#D69B26; --teal:#2F6C69; --orange:#C05629; --walnut:#3A2E25; --sage:#A6AC8A; }
+  .mid .screen { background: var(--bone); font-family: "Futura", sans-serif; }
+  .mid .sb { background: var(--bone); color: var(--walnut); }
+  .mid .m-head { padding: 8px 18px 0; }
+  .mid .m-eyebrow { display: flex; align-items: center; gap: 7px; }
+  .mid .m-eyebrow i { width: 9px; height: 9px; background: var(--orange); border-radius: 50%; display: block; }
+  .mid .m-eyebrow span { font: 500 7.5px "Futura"; letter-spacing: .26em; text-transform: uppercase; color: #8E8471; }
+  .mid .m-title { font: 500 27px "Futura"; color: var(--walnut); margin-top: 11px; letter-spacing: -.015em; }
+  .mid .m-hair { height: .7px; background: var(--walnut); opacity: .32; margin: 12px 0 0; }
+  .mid .m-chips { display: flex; gap: 5px; padding: 11px 18px 3px; }
+  .mid .m-chips span { font: 500 6.5px "Futura"; letter-spacing: .14em; text-transform: uppercase; padding: 3px 8px; border: .7px solid #C9BFA8; color: #8E8471; border-radius: 10px; }
+  .mid .m-chips span.on { background: var(--teal); border-color: var(--teal); color: #F3EEE1; }
+  .mid .m-row { padding: 12px 18px 11px; display: flex; gap: 11px; align-items: flex-start; }
+  .mid .m-row + .m-row { border-top: .7px solid #DED4BF; }
+  .mid .m-sq { width: 26px; height: 26px; flex: 0 0 auto; border-radius: 2px; }
+  .mid .m-sq.a { background: var(--mustard); }
+  .mid .m-sq.b { background: var(--teal); }
+  .mid .m-sq.c { background: var(--orange); }
+  .mid .m-sq.d { background: var(--sage); }
+  .mid .m-row .t { font: 500 12px "Futura"; color: var(--walnut); }
+  .mid .m-row .x { font: 400 9px/1.5 "Optima", sans-serif; color: #8C8271; margin-top: 3px; }
+  .mid .m-row .d { font: 500 6.5px "Futura"; letter-spacing: .16em; text-transform: uppercase; color: #B0A691; margin-top: 5px; }
+  .mid .tabs { background: var(--card); border-top: .7px solid #DED4BF; display: flex; padding: 9px 0 12px; }
+  .mid .tabs div { flex: 1; text-align: center; font: 500 6.5px "Futura"; letter-spacing: .15em; text-transform: uppercase; color: #AEA491; }
+  .mid .tabs div.on { color: var(--teal); }
+  .mid .tabs .ic { font-size: 11px; display: block; margin-bottom: 4px; letter-spacing: 0; }
+  .mid .m-fab { position: absolute; right: 16px; bottom: 16px; width: 38px; height: 38px; background: var(--mustard); border-radius: 3px; color: #FFF8E9; font: 400 20px/38px "Futura"; text-align: center; }
+  .mid .ed-h { padding: 8px 18px 12px; display: flex; justify-content: space-between; align-items: center; font: 500 8px "Futura"; letter-spacing: .18em; text-transform: uppercase; color: #8E8471; }
+  .mid .ed-h b { color: var(--teal); font-weight: 500; }
+  .mid .ed-bar { height: 3px; background: linear-gradient(90deg, var(--mustard) 0 33%, var(--teal) 33% 66%, var(--orange) 66% 100%); }
+  .mid .ed-w { padding: 20px 18px 0; }
+  .mid .ed-t { font: 500 22px/1.14 "Futura"; color: var(--walnut); letter-spacing: -.02em; }
+  .mid .ed-m { font: 500 6.5px "Futura"; letter-spacing: .2em; text-transform: uppercase; color: #B0A691; margin-top: 9px; }
+  .mid .ed-b { font: 400 10.5px/1.8 "Optima", sans-serif; color: #4B4237; margin-top: 14px; }
+  .mid .ed-q { border-left: 2px solid var(--mustard); padding-left: 10px; font: italic 400 10px/1.65 "Optima", sans-serif; color: #6E6455; margin-top: 12px; }
+
+  /* ============================================================
+     6 — MANUSCRIPT
+     ============================================================ */
+  .ms { --onion:#F1EADA; --page:#FAF6EC; --carbon:#252119; --pencil:#AF3A2C; --blue:#5A6B7C; --marg:#C6BCA8; }
+  .ms .screen { background: var(--onion); font-family: "Courier New", monospace; }
+  .ms .sb { background: var(--onion); color: #6B6154; }
+  .ms .s-head { padding: 7px 16px 0; }
+  .ms .s-hl { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--carbon); padding-bottom: 7px; }
+  .ms .s-hl .t { font: 700 12px "Courier New", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--carbon); }
+  .ms .s-hl .n { font: 400 7.5px "Courier New", monospace; color: #8B8172; }
+  .ms .s-find { margin: 9px 16px 0; border: 1px solid var(--marg); background: var(--page); padding: 5px 8px; font: 400 8.5px "Courier New", monospace; color: #9C9282; }
+  .ms .s-row { padding: 10px 16px 9px; border-bottom: 1px dotted var(--marg); position: relative; }
+  .ms .s-row .rn { position: absolute; left: 16px; top: 10px; font: 400 7px "Courier New", monospace; color: var(--marg); }
+  .ms .s-row .in { padding-left: 20px; }
+  .ms .s-row .t { font: 700 10.5px "Courier New", monospace; color: var(--carbon); letter-spacing: .01em; }
+  .ms .s-row .x { font: 400 8.5px/1.6 "Courier New", monospace; color: #8B8172; margin-top: 3px; }
+  .ms .s-row .d { font: 400 7px "Courier New", monospace; color: var(--blue); margin-top: 5px; letter-spacing: .06em; }
+  .ms .s-row .edit { color: var(--pencil); }
+  .ms .tabs { background: var(--page); border-top: 1px solid var(--carbon); display: flex; padding: 8px 0 11px; }
+  .ms .tabs div { flex: 1; text-align: center; font: 400 7px "Courier New", monospace; letter-spacing: .1em; text-transform: uppercase; color: #A09686; }
+  .ms .tabs div.on { color: var(--pencil); font-weight: 700; }
+  .ms .tabs .ic { font-size: 11px; display: block; margin-bottom: 3px; letter-spacing: 0; }
+  .ms .ed-h { padding: 7px 16px 8px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--carbon); font: 400 8px "Courier New", monospace; letter-spacing: .1em; text-transform: uppercase; color: #7D7364; }
+  .ms .ed-pg { background: var(--page); margin: 0; height: 100%; padding: 16px 16px 0 34px; position: relative; }
+  .ms .ed-pg:before { content: ""; position: absolute; left: 25px; top: 0; bottom: 0; width: 1px; background: var(--pencil); opacity: .55; }
+  .ms .ed-t { font: 700 13px/1.35 "Courier New", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--carbon); }
+  .ms .ed-b { font: 400 9.5px/2.0 "Courier New", monospace; color: #322C22; margin-top: 13px; }
+  .ms .ed-b mark { background: #F5E27F; padding: 0 1px; }
+  .ms .ed-b s { color: var(--pencil); text-decoration-color: var(--pencil); }
+  .ms .ed-ins { font: 400 8px "Bradley Hand", cursive; color: var(--pencil); }
+  .ms .ed-f { position: absolute; bottom: 11px; left: 34px; right: 16px; display: flex; justify-content: space-between; font: 400 7px "Courier New", monospace; color: #A0968E; letter-spacing: .1em; }
+
+  /* ---------- cover ---------- */
+  .cover { background: #FBF8F1; display: flex; flex-direction: column; }
+  .cover .top { flex: 1; }
+  .cover h0 { display: block; font: 400 60px/1.02 "Hoefler Text", serif; letter-spacing: -.02em; margin: 120px 0 0; color: #2B2118; }
+  .cover .sub { font: italic 400 19px/1.5 "Hoefler Text", serif; color: #6B6152; margin-top: 18px; max-width: 520px; }
+  .cover .brief { margin-top: 46px; max-width: 560px; }
+  .cover .brief p { font: 400 12.5px/1.72 "Charter", Georgia, serif; color: #4A4239; margin: 0 0 12px; }
+  .cover .brief b { color: #2B2118; }
+  .cover .idx { margin-top: 40px; border-top: 1px solid #E0D9CC; padding-top: 16px; max-width: 560px; }
+  .cover .idx div { display: flex; justify-content: space-between; padding: 6.5px 0; border-bottom: 1px solid #EDE7DC; font: 400 12px "Charter", Georgia, serif; color: #3F382F; }
+  .cover .idx div span:last-child { font: 400 9px "Menlo", monospace; color: #A79E90; padding-top: 3px; }
+  .cover .foot { font: 400 9px "Avenir Next"; letter-spacing: .16em; text-transform: uppercase; color: #A79E90; }
+  .cover .strip { display: flex; height: 8px; margin-top: 34px; max-width: 560px; border-radius: 2px; overflow: hidden; }
+  .cover .strip i { flex: 1; }
+
+  /* ---------- final page ---------- */
+  .matrix { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .matrix th { font: 500 8px "Avenir Next"; letter-spacing: .14em; text-transform: uppercase; color: #9A9287; text-align: left; padding: 0 8px 8px 0; border-bottom: 1px solid #DED8CF; }
+  .matrix td { font: 400 10.5px/1.45 "Charter", Georgia, serif; color: #4A443C; padding: 9px 8px 9px 0; border-bottom: 1px solid #EDE7DC; vertical-align: top; }
+  .matrix td.nm { font-family: "Hoefler Text", serif; font-size: 12px; color: #2B2118; white-space: nowrap; }
+  .matrix .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .rec { background: #F6F2E8; border: 1px solid #E3DBC9; border-radius: 4px; padding: 16px 18px; margin-top: 24px; }
+  .rec h3 { font: 500 8.5px/1 "Avenir Next"; letter-spacing: .2em; text-transform: uppercase; color: #9A8F72; margin: 0 0 9px; }
+  .rec p { font: 400 12px/1.68 "Charter", Georgia, serif; color: #443D33; margin: 0 0 9px; }
+  .rec p:last-child { margin-bottom: 0; }
+  .rec b { color: #2B2118; }
+  .qs { margin-top: 22px; }
+  .qs ol { margin: 0; padding-left: 18px; }
+  .qs li { font: 400 11.5px/1.6 "Charter", Georgia, serif; color: #4A443C; margin-bottom: 9px; }
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<div class="page cover">
+  <div class="top">
+    <div class="kicker">Fit-Organiser &nbsp;·&nbsp; Note Taker &nbsp;·&nbsp; Design Directions</div>
+    <h0>Six ways<br>to feel at home</h0>
+    <div class="sub">Visual directions for a note-taking app — old-fashioned, warm, stylish, and quietly modern.</div>
+
+    <div class="brief">
+      <p><b>The brief, as I read it.</b> Not retro-computing. Nothing grey, boxy or institutional. The reference points are <b>analog and tactile</b> — paper, ink, cloth, leather, wood — the objects people actually kept notes in before apps existed.</p>
+      <p>Every direction below follows four rules: warm paper-tone backgrounds instead of white or grey; one saturated accent, used sparingly; a real typographic voice with a serif or typewriter face for body text; and softness in the details — small radii, hairline rules, gentle shadows, no hard chrome.</p>
+      <p>“A bit modern” shows up as restraint rather than pastiche: generous spacing, a clear type hierarchy, and modern interaction comfort. The result should read as a well-made object, not a costume.</p>
+    </div>
+
+    <div class="strip">
+      <i style="background:#B08A57"></i><i style="background:#4E3221"></i><i style="background:#DFCFA8"></i><i style="background:#C24B3C"></i><i style="background:#D69B26"></i><i style="background:#2F6C69"></i><i style="background:#AF3A2C"></i><i style="background:#F1EADA"></i>
+    </div>
+
+    <div class="idx">
+      <div><span>1 &nbsp; Kraft &amp; Ink — the pocket field notebook</span><span>P. 02</span></div>
+      <div><span>2 &nbsp; Leather &amp; Cream — the kept journal</span><span>P. 03</span></div>
+      <div><span>3 &nbsp; Card Catalog — the library drawer</span><span>P. 04</span></div>
+      <div><span>4 &nbsp; Recipe Tin — the kitchen index box</span><span>P. 05</span></div>
+      <div><span>5 &nbsp; Mid-century Stationery — the 1962 desk set</span><span>P. 06</span></div>
+      <div><span>6 &nbsp; Manuscript — the typewriter page</span><span>P. 07</span></div>
+      <div><span>&nbsp; &nbsp; &nbsp; Comparison, recommendation &amp; open questions</span><span>P. 08</span></div>
+    </div>
+  </div>
+  <div class="foot">Rendered mockups · 9 September 2026</div>
+</div>
+
+<!-- ============================== 1 KRAFT ============================== -->
+<div class="page">
+  <div class="kicker">Direction One</div>
+  <h1 class="title">Kraft &amp; Ink</h1>
+  <p class="tagline">The pocket field notebook — kraft cover, dot-grid paper, a rubber-stamped label and ink that looks pressed into the page.</p>
+  <div class="rule"></div>
+
+  <div class="cols">
+    <div class="mockups kraft">
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="k-head">
+            <div class="k-stamp">NO. 014 · FIELD</div>
+            <div class="k-title">Notebook</div>
+            <div class="k-sub">14 entries · all saved</div>
+          </div>
+          <div class="scr-body dotgrid">
+            <div class="k-row">
+              <div class="t">Grocery list</div>
+              <div class="x">milk · the good coffee · bread</div>
+              <div class="m"><span class="k-date">TODAY 14:32</span><span class="k-pin">PINNED</span></div>
+            </div>
+            <div class="k-row">
+              <div class="t">Notes on the new flat</div>
+              <div class="x">ask about the boiler service and<br>whether the shed stays</div>
+              <div class="m"><span class="k-date">MON 08:15</span></div>
+            </div>
+            <div class="k-row">
+              <div class="t">Book ideas</div>
+              <div class="x">something about small towns</div>
+              <div class="m"><span class="k-date">12 AUG</span></div>
+            </div>
+            <div class="k-fab">+</div>
+          </div>
+          <div class="tabs">
+            <div class="on"><span class="ic">◼</span>NOTES</div>
+            <div><span class="ic">◷</span>RECENT</div>
+            <div><span class="ic">⌕</span>FIND</div>
+          </div>
+        </div></div>
+        <div class="caption">List</div>
+      </div>
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="ed-h"><span>‹ NOTEBOOK</span><span>SAVED ✓</span></div>
+          <div class="scr-body dotgrid">
+            <div class="ed-t">Notes on the new flat</div>
+            <div class="ed-meta">MON 08:15 · 128 WORDS</div>
+            <div class="ed-b">
+              Ask about the boiler service<br>
+              record — last one looked<br>
+              like 2019.<br><br>
+              Shed: does it stay? The<br>
+              listing photo shows one but<br>
+              the floor plan doesn't.<br><br>
+              Measure the alcove before<br>
+              ordering shelves. 84cm?
+            </div>
+          </div>
+          <div class="tabs">
+            <div class="on"><span class="ic">✎</span>WRITE</div>
+            <div><span class="ic">◫</span>FORMAT</div>
+            <div><span class="ic">⋯</span>MORE</div>
+          </div>
+        </div></div>
+        <div class="caption">Editor</div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="blk">
+        <h3>Palette</h3>
+        <div class="swatches">
+          <div class="sw" style="background:#B08A57"></div>
+          <div class="sw" style="background:#EDE3CE"></div>
+          <div class="sw" style="background:#F7F0E1"></div>
+          <div class="sw" style="background:#22303F"></div>
+          <div class="sw" style="background:#9C4A33"></div>
+          <div class="sw" style="background:#8A7C64"></div>
+        </div>
+        <div class="hexlist"><span>#B08A57 kraft</span><span>#EDE3CE paper</span><span>#F7F0E1 card</span><span>#22303F ink</span><span>#9C4A33 brick</span><span>#8A7C64 dim</span></div>
+      </div>
+
+      <div class="blk">
+        <h3>Type</h3>
+        <div class="specimen">
+          <div class="big" style="font-family:'Futura',sans-serif;font-weight:500;">Notebook</div>
+          <div class="sml" style="font-family:'Courier New',monospace;">Measure the alcove before ordering shelves.</div>
+          <div class="lbl">Futura · Courier</div>
+        </div>
+      </div>
+
+      <div class="blk">
+        <h3>The idea</h3>
+        <p>Utilitarian but affectionate. The kraft header is the <b>cover</b>; scroll and you're on the dot-grid <b>page</b>. Notes sit as slightly raised cards so the list feels like loose leaves tucked inside.</p>
+        <p>Body copy in a typewriter mono keeps it honest and unfussy, while Futura in the chrome does the modern work — geometric, clean, no nostalgia tax.</p>
+      </div>
+
+      <div class="blk home">
+        <p>Feels like the notebook already in your back pocket — worn, unprecious, the one you don't mind writing a shopping list in.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pagenum">02</div>
+</div>
+
+<!-- ============================== 2 LEATHER ============================== -->
+<div class="page">
+  <div class="kicker">Direction Two</div>
+  <h1 class="title">Leather &amp; Cream</h1>
+  <p class="tagline">The kept journal — espresso hide, gilded edges, a crimson ribbon marking your place and a proper serif on cream stock.</p>
+  <div class="rule"></div>
+
+  <div class="cols">
+    <div class="mockups leather">
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="l-head">
+            <div class="l-mono">Journal · MMXXVI</div>
+            <div class="l-title">My Notes</div>
+            <div class="l-rule"></div>
+          </div>
+          <div class="scr-body">
+            <div class="l-row on">
+              <div class="t">On the new flat</div>
+              <div class="x">Ask about the boiler service record — last one looked like 2019.</div>
+              <div class="d">Monday · 08:15</div>
+            </div>
+            <div class="l-row">
+              <div class="t">Grocery list</div>
+              <div class="x">Milk, the good coffee, bread.</div>
+              <div class="d">Today · 14:32</div>
+            </div>
+            <div class="l-row">
+              <div class="t">Book ideas</div>
+              <div class="x">Something about small towns and the people who stay.</div>
+              <div class="d">12 August</div>
+            </div>
+            <div class="l-row">
+              <div class="t">Letter to Nan</div>
+              <div class="x">Draft — remember the photographs.</div>
+              <div class="d">3 August</div>
+            </div>
+          </div>
+          <div class="tabs">
+            <div class="on"><span class="ic">❦</span>Journal</div>
+            <div><span class="ic">⌕</span>Search</div>
+            <div><span class="ic">✎</span>New</div>
+          </div>
+        </div></div>
+        <div class="caption">List</div>
+      </div>
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="ed-h"><span>‹ Journal</span><span class="g">Saved</span></div>
+          <div class="scr-body">
+            <div class="ed-body">
+              <div class="ed-t">On the new flat</div>
+              <div class="ed-orn">❧ ❧ ❧</div>
+              <p class="ed-p"><span class="dc">A</span>sk about the boiler service record — the last one looked like 2019, which would mean it is overdue by a fair margin.</p>
+              <p class="ed-p">Does the shed stay? The listing photograph shows one, but the floor plan does not mention it at all.</p>
+              <p class="ed-p">Measure the alcove before ordering any shelves. Eighty-four centimetres, I think.</p>
+              <div class="ed-f"><span>Monday, 8:15</span><span>128 words</span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption">Editor</div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="blk">
+        <h3>Palette</h3>
+        <div class="swatches">
+          <div class="sw" style="background:#4E3221"></div>
+          <div class="sw" style="background:#63402A"></div>
+          <div class="sw" style="background:#F6F0E2"></div>
+          <div class="sw" style="background:#C29B33"></div>
+          <div class="sw" style="background:#8B2C2C"></div>
+          <div class="sw" style="background:#2A2118"></div>
+        </div>
+        <div class="hexlist"><span>#4E3221 hide</span><span>#63402A hide lt</span><span>#F6F0E2 cream</span><span>#C29B33 gold</span><span>#8B2C2C ribbon</span><span>#2A2118 ink</span></div>
+      </div>
+
+      <div class="blk">
+        <h3>Type</h3>
+        <div class="specimen">
+          <div class="big" style="font-family:'Hoefler Text',serif;font-style:italic;">My Notes</div>
+          <div class="sml" style="font-family:'Baskerville',serif;">Does the shed stay? The floor plan does not say.</div>
+          <div class="lbl">Hoefler Text · Baskerville</div>
+        </div>
+      </div>
+
+      <div class="blk">
+        <h3>The idea</h3>
+        <p>The most <b>premium and personal</b> of the six. The dark hide header frames cream pages; gold hairlines do all the accenting; the crimson ribbon replaces any modern highlight state.</p>
+        <p>A drop cap and a small ornament give each entry the dignity of a page in a real journal — which quietly encourages longer, more thoughtful writing.</p>
+      </div>
+
+      <div class="blk home">
+        <p>Feels like the hardbound notebook someone gave you as a gift — the one you hesitate to write the first page in.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pagenum">03</div>
+</div>
+
+<!-- ============================== 3 CATALOG ============================== -->
+<div class="page">
+  <div class="kicker">Direction Three</div>
+  <h1 class="title">Card Catalog</h1>
+  <p class="tagline">The library drawer — manila index cards, a red rule under the header, blue feint lines and a date stamp in oxblood ink.</p>
+  <div class="rule"></div>
+
+  <div class="cols">
+    <div class="mockups catalog">
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="c-head">
+            <div class="c-plate"><span class="t">Card Catalog</span><span class="n">14 cards</span></div>
+          </div>
+          <div class="c-tabs"><span class="on">ALL</span><span>A–F</span><span>G–M</span><span>N–Z</span></div>
+          <div class="scr-body">
+            <div class="c-card">
+              <div class="top"><span class="cn">CARD 014</span><span class="dt">FILED 09 SEP</span></div>
+              <div class="t">Grocery list</div>
+              <div class="x">milk · the good coffee · bread</div>
+              <div class="c-stamp">RECENT</div>
+            </div>
+            <div class="c-card">
+              <div class="top"><span class="cn">CARD 013</span><span class="dt">FILED 07 SEP</span></div>
+              <div class="t">Notes on the new flat</div>
+              <div class="x">boiler service record, does<br>the shed stay, measure alcove</div>
+            </div>
+            <div class="c-card">
+              <div class="top"><span class="cn">CARD 011</span><span class="dt">FILED 12 AUG</span></div>
+              <div class="t">Book ideas</div>
+              <div class="x">something about small towns</div>
+            </div>
+          </div>
+          <div class="tabs">
+            <div class="on"><span class="ic">▤</span>Drawer</div>
+            <div><span class="ic">⌕</span>Look up</div>
+            <div><span class="ic">+</span>New card</div>
+          </div>
+        </div></div>
+        <div class="caption">List</div>
+      </div>
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="ed-h"><span>‹ DRAWER</span><span>CARD 013</span></div>
+          <div class="scr-body">
+            <div class="ed-card">
+              <div class="top"><span class="cn">SUBJECT</span><span class="dt">FILED 07 SEP · 08:15</span></div>
+              <div class="t">Notes on the new flat</div>
+              <div class="b">
+                Boiler service record — last<br>
+                one looked like 2019.<br><br>
+                Does the shed stay? Listing<br>
+                photo shows one, floor plan<br>
+                doesn't mention it.<br><br>
+                Measure the alcove first.<br>
+                84cm, I think.
+              </div>
+              <div class="ed-slip"><span>SEE ALSO: MOVING</span><span>128 WORDS</span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption">Editor</div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="blk">
+        <h3>Palette</h3>
+        <div class="swatches">
+          <div class="sw" style="background:#DFCFA8"></div>
+          <div class="sw" style="background:#FBF6E9"></div>
+          <div class="sw" style="background:#2E3B44"></div>
+          <div class="sw" style="background:#7B2E2E"></div>
+          <div class="sw" style="background:#C2584A"></div>
+          <div class="sw" style="background:#A9C0CE"></div>
+        </div>
+        <div class="hexlist"><span>#DFCFA8 manila</span><span>#FBF6E9 card</span><span>#2E3B44 ink</span><span>#7B2E2E oxblood</span><span>#C2584A red rule</span><span>#A9C0CE feint</span></div>
+      </div>
+
+      <div class="blk">
+        <h3>Type</h3>
+        <div class="specimen">
+          <div class="big" style="font-family:'American Typewriter',serif;">Card Catalog</div>
+          <div class="sml" style="font-family:'American Typewriter',serif;">Filed 07 Sep · see also: moving</div>
+          <div class="lbl">American Typewriter throughout</div>
+        </div>
+      </div>
+
+      <div class="blk">
+        <h3>The idea</h3>
+        <p>The one with a real <b>organising metaphor</b> built in — cards, drawers, alphabet tabs, “see also”. Structure comes for free, which suits a notes app that might grow tags or folders later.</p>
+        <p>Ruled feint lines behind the text and a red rule under each header do the heavy lifting; the typewriter face is used at every size, so the whole thing holds together with one font.</p>
+      </div>
+
+      <div class="blk home">
+        <p>Feels like the wooden drawer at a small-town library — slightly musty, entirely trustworthy, everything findable.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pagenum">04</div>
+</div>
+
+<!-- ============================== 4 RECIPE TIN ============================== -->
+<div class="page">
+  <div class="kicker">Direction Four</div>
+  <h1 class="title">Recipe Tin</h1>
+  <p class="tagline">The kitchen index box — ticking stripe, tomato red, sage and butter, with a handwritten margin note in the corner.</p>
+  <div class="rule"></div>
+
+  <div class="cols">
+    <div class="mockups tin">
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="t-head">
+            <div class="ticking"></div>
+            <div class="t-title">My Notes</div>
+            <div class="t-sub">14 cards in the tin</div>
+          </div>
+          <div class="t-scal"></div>
+          <div class="scr-body">
+            <div class="t-card">
+              <span class="cat">LISTS</span>
+              <div class="t">Grocery list</div>
+              <div class="x">milk, the good coffee, bread</div>
+              <div class="d">Today · 14:32</div>
+              <div class="t-hand">★</div>
+            </div>
+            <div class="t-card">
+              <span class="cat b">HOME</span>
+              <div class="t">Notes on the new flat</div>
+              <div class="x">boiler service, the shed,<br>measure the alcove</div>
+              <div class="d">Monday · 08:15</div>
+            </div>
+            <div class="t-card">
+              <span class="cat">IDEAS</span>
+              <div class="t">Book ideas</div>
+              <div class="x">something about small towns</div>
+              <div class="d">12 August</div>
+            </div>
+          </div>
+          <div class="tabs">
+            <div class="on"><span class="ic">▦</span>The tin</div>
+            <div><span class="ic">⌕</span>Find</div>
+            <div><span class="ic">✚</span>New</div>
+          </div>
+        </div></div>
+        <div class="caption">List</div>
+      </div>
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="ed-h"><span>‹ THE TIN</span><span>SAVED</span></div>
+          <div class="scr-body">
+            <div class="ed-card">
+              <div class="ed-t">Grocery list</div>
+              <div class="ed-dash"></div>
+              <div class="ed-li"><b>✓</b> milk</div>
+              <div class="ed-li"><b>✓</b> the good coffee</div>
+              <div class="ed-li">◦ bread — the seeded one</div>
+              <div class="ed-li">◦ tomatoes</div>
+              <div class="ed-li">◦ olive oil</div>
+              <div class="ed-note">not the cheap oil this<br>time! it ruins everything</div>
+              <div class="ed-f"><span>Today 14:32</span><span>5 items</span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption">Editor</div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="blk">
+        <h3>Palette</h3>
+        <div class="swatches">
+          <div class="sw" style="background:#C24B3C"></div>
+          <div class="sw" style="background:#FCF3DE"></div>
+          <div class="sw" style="background:#FFFBF0"></div>
+          <div class="sw" style="background:#7A8C66"></div>
+          <div class="sw" style="background:#E4AE45"></div>
+          <div class="sw" style="background:#463629"></div>
+        </div>
+        <div class="hexlist"><span>#C24B3C tomato</span><span>#FCF3DE cream</span><span>#FFFBF0 card</span><span>#7A8C66 sage</span><span>#E4AE45 butter</span><span>#463629 cocoa</span></div>
+      </div>
+
+      <div class="blk">
+        <h3>Type</h3>
+        <div class="specimen">
+          <div class="big" style="font-family:'Chalkboard SE',cursive;font-weight:700;">My Notes</div>
+          <div class="sml" style="font-family:'Marker Felt',cursive;color:#C24B3C;">not the cheap oil this time!</div>
+          <div class="lbl">Chalkboard · Charter · Marker Felt</div>
+        </div>
+      </div>
+
+      <div class="blk">
+        <h3>The idea</h3>
+        <p>The <b>warmest and most domestic</b> option, and the most literal reading of “feel at home”. Colour-coded category pills, scalloped card edges, and a handwriting face reserved strictly for margin notes.</p>
+        <p>Worth knowing: the handwriting font is the risk. Used for one accent per screen it's charming; used for body text it becomes a novelty app fast. I'd cap it hard.</p>
+      </div>
+
+      <div class="blk home">
+        <p>Feels like your grandmother's recipe box on the counter — splattered, annotated, unmistakably lived in.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pagenum">05</div>
+</div>
+
+<!-- ============================== 5 MID-CENTURY ============================== -->
+<div class="page">
+  <div class="kicker">Direction Five</div>
+  <h1 class="title">Mid-century Stationery</h1>
+  <p class="tagline">The 1962 desk set — bone paper, mustard, teal and burnt orange, hairline rules and a great deal of quiet space.</p>
+  <div class="rule"></div>
+
+  <div class="cols">
+    <div class="mockups mid">
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="m-head">
+            <div class="m-eyebrow"><i></i><span>Notes</span></div>
+            <div class="m-title">Fourteen<br>entries</div>
+            <div class="m-hair"></div>
+          </div>
+          <div class="m-chips"><span class="on">All</span><span>Lists</span><span>Ideas</span><span>Home</span></div>
+          <div class="scr-body">
+            <div class="m-row">
+              <div class="m-sq a"></div>
+              <div><div class="t">Grocery list</div><div class="x">milk, the good coffee, bread</div><div class="d">Today 14:32</div></div>
+            </div>
+            <div class="m-row">
+              <div class="m-sq b"></div>
+              <div><div class="t">Notes on the new flat</div><div class="x">boiler service, the shed, alcove</div><div class="d">Monday 08:15</div></div>
+            </div>
+            <div class="m-row">
+              <div class="m-sq c"></div>
+              <div><div class="t">Book ideas</div><div class="x">small towns, the people who stay</div><div class="d">12 August</div></div>
+            </div>
+            <div class="m-row">
+              <div class="m-sq d"></div>
+              <div><div class="t">Letter to Nan</div><div class="x">draft — the photographs</div><div class="d">3 August</div></div>
+            </div>
+            <div class="m-fab">+</div>
+          </div>
+          <div class="tabs">
+            <div class="on"><span class="ic">◧</span>Notes</div>
+            <div><span class="ic">◍</span>Tags</div>
+            <div><span class="ic">⌕</span>Search</div>
+          </div>
+        </div></div>
+        <div class="caption">List</div>
+      </div>
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="ed-h"><span>‹ Notes</span><span><b>Saved</b></span></div>
+          <div class="ed-bar"></div>
+          <div class="scr-body">
+            <div class="ed-w">
+              <div class="ed-t">Notes on<br>the new flat</div>
+              <div class="ed-m">Monday 08:15 · 128 words</div>
+              <div class="ed-b">
+                Ask about the boiler service record — the last one looked like 2019.
+              </div>
+              <div class="ed-q">Does the shed stay? The photo shows one; the floor plan doesn't.</div>
+              <div class="ed-b">
+                Measure the alcove before ordering shelves. 84cm, I think.
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption">Editor</div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="blk">
+        <h3>Palette</h3>
+        <div class="swatches">
+          <div class="sw" style="background:#F0E8D8"></div>
+          <div class="sw" style="background:#D69B26"></div>
+          <div class="sw" style="background:#2F6C69"></div>
+          <div class="sw" style="background:#C05629"></div>
+          <div class="sw" style="background:#A6AC8A"></div>
+          <div class="sw" style="background:#3A2E25"></div>
+        </div>
+        <div class="hexlist"><span>#F0E8D8 bone</span><span>#D69B26 mustard</span><span>#2F6C69 teal</span><span>#C05629 orange</span><span>#A6AC8A sage</span><span>#3A2E25 walnut</span></div>
+      </div>
+
+      <div class="blk">
+        <h3>Type</h3>
+        <div class="specimen">
+          <div class="big" style="font-family:'Futura',sans-serif;font-weight:500;letter-spacing:-.02em;">Fourteen entries</div>
+          <div class="sml" style="font-family:'Optima',sans-serif;">Measure the alcove before ordering shelves.</div>
+          <div class="lbl">Futura · Optima</div>
+        </div>
+      </div>
+
+      <div class="blk">
+        <h3>The idea</h3>
+        <p>The <b>most modern-feeling</b> of the six while still being unmistakably of another era. Warmth comes from the palette and the bone paper rather than from texture, so it stays crisp and very legible.</p>
+        <p>Colour-coded squares carry categories, hairline rules replace card borders, and the three-colour bar is the only flourish. Also the easiest to build and the easiest to keep consistent as the app grows.</p>
+      </div>
+
+      <div class="blk home">
+        <p>Feels like a well-kept writing desk — the good pen, the nice paper, everything squared up and to hand.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pagenum">06</div>
+</div>
+
+<!-- ============================== 6 MANUSCRIPT ============================== -->
+<div class="page">
+  <div class="kicker">Direction Six</div>
+  <h1 class="title">Manuscript</h1>
+  <p class="tagline">The typewriter page — onion-skin stock, carbon-black Courier, a red margin rule and edits in pencil.</p>
+  <div class="rule"></div>
+
+  <div class="cols">
+    <div class="mockups ms">
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="s-head">
+            <div class="s-hl"><span class="t">Notes</span><span class="n">14 pp.</span></div>
+          </div>
+          <div class="s-find">⌕ find in all pages…</div>
+          <div class="scr-body">
+            <div class="s-row">
+              <span class="rn">01</span>
+              <div class="in">
+                <div class="t">GROCERY LIST</div>
+                <div class="x">milk / the good coffee / bread</div>
+                <div class="d">today 14:32 · <span class="edit">edited</span></div>
+              </div>
+            </div>
+            <div class="s-row">
+              <span class="rn">02</span>
+              <div class="in">
+                <div class="t">NOTES ON THE NEW FLAT</div>
+                <div class="x">boiler service record, the shed,<br>measure the alcove</div>
+                <div class="d">mon 08:15</div>
+              </div>
+            </div>
+            <div class="s-row">
+              <span class="rn">03</span>
+              <div class="in">
+                <div class="t">BOOK IDEAS</div>
+                <div class="x">something about small towns</div>
+                <div class="d">12 aug</div>
+              </div>
+            </div>
+          </div>
+          <div class="tabs">
+            <div class="on"><span class="ic">▤</span>Pages</div>
+            <div><span class="ic">⌕</span>Find</div>
+            <div><span class="ic">✎</span>New</div>
+          </div>
+        </div></div>
+        <div class="caption">List</div>
+      </div>
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><span class="dots">▮▮▮ ◉</span></div>
+          <div class="ed-h"><span>‹ pages</span><span>p. 2 of 14</span></div>
+          <div class="scr-body">
+            <div class="ed-pg">
+              <div class="ed-t">Notes on the<br>new flat</div>
+              <div class="ed-b">
+                Ask about the boiler service<br>
+                record — last one looked<br>
+                like <mark>2019</mark>.<br><br>
+                Does the shed <s>stays</s> stay?<br>
+                <span class="ed-ins">check floor plan</span><br><br>
+                Measure the alcove before<br>
+                ordering shelves.
+              </div>
+              <div class="ed-f"><span>128 words</span><span>saved 08:15</span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption">Editor</div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="blk">
+        <h3>Palette</h3>
+        <div class="swatches">
+          <div class="sw" style="background:#F1EADA"></div>
+          <div class="sw" style="background:#FAF6EC"></div>
+          <div class="sw" style="background:#252119"></div>
+          <div class="sw" style="background:#AF3A2C"></div>
+          <div class="sw" style="background:#5A6B7C"></div>
+          <div class="sw" style="background:#F5E27F"></div>
+        </div>
+        <div class="hexlist"><span>#F1EADA onion</span><span>#FAF6EC page</span><span>#252119 carbon</span><span>#AF3A2C pencil</span><span>#5A6B7C faded blue</span><span>#F5E27F marker</span></div>
+      </div>
+
+      <div class="blk">
+        <h3>Type</h3>
+        <div class="specimen">
+          <div class="big" style="font-family:'Courier New',monospace;font-weight:700;letter-spacing:.04em;">MANUSCRIPT</div>
+          <div class="sml" style="font-family:'Courier New',monospace;">Does the shed stay? — check floor plan</div>
+          <div class="lbl">Courier · Bradley Hand for edits</div>
+        </div>
+      </div>
+
+      <div class="blk">
+        <h3>The idea</h3>
+        <p>The <b>writer's</b> option. Everything is a page: numbered, word-counted, with a red margin rule and generous line spacing that makes long-form typing genuinely pleasant.</p>
+        <p>Its trick is treating edit history as visible craft — strikethroughs in red pencil, insertions in handwriting, highlighter for the bit you're unsure about. Beautiful, and the narrowest in appeal: monospace body text is a real acquired taste on a phone.</p>
+      </div>
+
+      <div class="blk home">
+        <p>Feels like a half-finished draft left in the typewriter — the one you keep coming back to.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pagenum">07</div>
+</div>
+
+<!-- ============================== FINAL ============================== -->
+<div class="page">
+  <div class="kicker">Summary</div>
+  <h1 class="title">Where I'd land</h1>
+  <p class="tagline">All six meet the brief. They differ in how loud the costume is, and in how well they'll hold up once the app has features.</p>
+  <div class="rule"></div>
+
+  <table class="matrix">
+    <tr>
+      <th style="width:132px">Direction</th>
+      <th style="width:74px">Warmth</th>
+      <th style="width:74px">Modern</th>
+      <th style="width:66px">Effort</th>
+      <th>Best if…</th>
+    </tr>
+    <tr>
+      <td class="nm"><span class="dot" style="background:#B08A57"></span>Kraft &amp; Ink</td>
+      <td>High</td><td>Medium</td><td>Low</td>
+      <td>you want everyday, unprecious, quick-capture notes.</td>
+    </tr>
+    <tr>
+      <td class="nm"><span class="dot" style="background:#4E3221"></span>Leather &amp; Cream</td>
+      <td>High</td><td>Low</td><td>Medium</td>
+      <td>notes are long-form and personal — a journal more than a scratchpad.</td>
+    </tr>
+    <tr>
+      <td class="nm"><span class="dot" style="background:#7B2E2E"></span>Card Catalog</td>
+      <td>Medium</td><td>Low</td><td>Medium</td>
+      <td>organisation matters and you expect tags, folders, cross-references.</td>
+    </tr>
+    <tr>
+      <td class="nm"><span class="dot" style="background:#C24B3C"></span>Recipe Tin</td>
+      <td>Highest</td><td>Medium</td><td>Medium</td>
+      <td>you want the friendliest, most domestic feel and don't mind whimsy.</td>
+    </tr>
+    <tr>
+      <td class="nm"><span class="dot" style="background:#D69B26"></span>Mid-century</td>
+      <td>Medium</td><td>High</td><td>Lowest</td>
+      <td>you want it to age well and stay legible as features pile up.</td>
+    </tr>
+    <tr>
+      <td class="nm"><span class="dot" style="background:#AF3A2C"></span>Manuscript</td>
+      <td>Medium</td><td>Low</td><td>Low</td>
+      <td>the app is for writing drafts, not lists.</td>
+    </tr>
+  </table>
+
+  <div class="rec">
+    <h3>Recommendation</h3>
+    <p><b>Kraft &amp; Ink</b>, with two details borrowed from elsewhere: the <b>mid-century colour-coded squares</b> for categories, and the <b>manuscript red margin rule</b> in the editor.</p>
+    <p>It hits every word of the brief without tipping into pastiche. Kraft and dot-grid paper give real warmth; Futura in the chrome supplies the modern edge; the typewriter body face stays old-fashioned where it counts, in the writing itself. It also has the fewest ways to go wrong — no handwriting font to over-use, no dark leather to fight for contrast, no monospace tax on readability.</p>
+    <p>If you want warmer, take <b>Recipe Tin</b>. If you want it to look sharp for a decade, take <b>Mid-century</b>. Those are the two I'd argue for after my own pick.</p>
+  </div>
+
+  <div class="qs">
+    <div class="blk"><h3>What I still need from you</h3></div>
+    <ol>
+      <li><b>Which direction</b> — or a hybrid, if a specific pairing appeals more than any single page.</li>
+      <li><b>What kind of notes</b> is this really for: quick lists and capture, or longer writing? It changes the editor completely, and it changes which of these six is right.</li>
+      <li><b>Platforms</b> — iOS only, or do web and Android matter? All six work on the web, but bundled fonts and paper textures cost more there.</li>
+      <li><b>Dark mode</b> — I'd skip it for v1. Every one of these is built on warm paper, and the inversions are a design project of their own.</li>
+    </ol>
+  </div>
+
+  <div class="pagenum">08</div>
+</div>
+
+</body>
+</html>
