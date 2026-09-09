@@ -26,7 +26,7 @@ describe('semantic roles', () => {
     const roles = [
       Colors.text.primary, Colors.text.secondary, Colors.text.onKraft,
       Colors.surface.page, Colors.surface.card, Colors.surface.cover,
-      Colors.accent, Colors.border.hairline,
+      Colors.accent, Colors.border.hairline, Colors.highlight,
     ];
     for (const role of roles) expect(known.has(role)).toBe(true);
   });

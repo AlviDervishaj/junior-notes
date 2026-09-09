@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Note } from '@/db/types';
 import { formatNoteDate } from '@/lib/format-date';
+import { splitOnMatch } from '@/lib/highlight';
 import { Colors, Layout, Type } from '@/theme';
 
 import { CategorySquare } from './category-square';
@@ -10,9 +11,11 @@ export type NoteCardProps = {
   note: Note;
   now: number;
   onPress: (id: number) => void;
+  /** When set, occurrences of this query are marked in the title. */
+  highlight?: string;
 };
 
-export function NoteCard({ note, now, onPress }: NoteCardProps) {
+export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
   return (
     <Pressable
       testID={`note-card-${note.id}`}
@@ -21,7 +24,15 @@ export function NoteCard({ note, now, onPress }: NoteCardProps) {
       <View style={styles.titleRow}>
         <CategorySquare category={note.category} />
         <Text style={[Type.cardTitle, styles.title]} numberOfLines={1}>
-          {note.title.trim() === '' ? 'Untitled' : note.title}
+          {note.title.trim() === ''
+            ? 'Untitled'
+            : highlight
+              ? splitOnMatch(note.title, highlight).map((segment, i) => (
+                  <Text key={i} style={segment.match ? styles.match : undefined}>
+                    {segment.text}
+                  </Text>
+                ))
+              : note.title}
         </Text>
       </View>
 
@@ -65,6 +76,7 @@ const styles = StyleSheet.create({
     marginTop: Layout.space.sm,
   },
   date: { color: Colors.text.secondary },
+  match: { backgroundColor: Colors.highlight },
   pin: {
     backgroundColor: Colors.accent,
     borderRadius: Layout.radius.chip,

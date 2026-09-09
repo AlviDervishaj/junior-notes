@@ -12,6 +12,7 @@ export const Palette = {
   rule: '#D6C8AC',
   textOnKraft: '#FBF5E9',
   cardBorder: '#E0D4B9',
+  marker: '#F5E27F',
 } as const;
 
 /** Semantic roles. Components use these, never Palette directly. */
@@ -32,4 +33,6 @@ export const Colors = {
     card: Palette.cardBorder,
   },
   marginRule: Palette.brick,
+  /** Marker-pen highlight behind a search match. */
+  highlight: Palette.marker,
 } as const;
