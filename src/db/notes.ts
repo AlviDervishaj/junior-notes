@@ -59,3 +59,69 @@ export async function updateNote(
 
   await db.runAsync(`UPDATE notes SET ${sets.join(', ')} WHERE id = ?`, params);
 }
+
+/** Soft-deleted notes are purged after this long (spec §6). */
+export const PURGE_AFTER_MS = 30 * 86_400_000;
+
+export async function listNotes(db: SqlDb): Promise<Note[]> {
+  const rows = await db.getAllAsync<NoteRow>(
+    `${SELECT_NOTE}
+     WHERE deleted_at IS NULL
+     ORDER BY pinned DESC, updated_at DESC`,
+    []
+  );
+  return rows.map(rowToNote);
+}
+
+export async function setPinned(
+  db: SqlDb,
+  id: number,
+  pinned: boolean,
+  now: number
+): Promise<void> {
+  await db.runAsync('UPDATE notes SET pinned = ?, updated_at = ? WHERE id = ?', [
+    pinned ? 1 : 0,
+    now,
+    id,
+  ]);
+}
+
+export async function setCategory(
+  db: SqlDb,
+  id: number,
+  category: NoteCategory | null,
+  now: number
+): Promise<void> {
+  await db.runAsync('UPDATE notes SET category = ?, updated_at = ? WHERE id = ?', [
+    category,
+    now,
+    id,
+  ]);
+}
+
+/** Soft delete, so undo is a single UPDATE that preserves the id. */
+export async function softDelete(db: SqlDb, id: number, now: number): Promise<void> {
+  await db.runAsync('UPDATE notes SET deleted_at = ? WHERE id = ?', [now, id]);
+}
+
+export async function restore(db: SqlDb, id: number): Promise<void> {
+  await db.runAsync('UPDATE notes SET deleted_at = NULL WHERE id = ?', [id]);
+}
+
+/** Used for notes abandoned empty — nothing to restore, so no soft delete. */
+export async function hardDelete(db: SqlDb, id: number): Promise<void> {
+  await db.runAsync('DELETE FROM notes WHERE id = ?', [id]);
+}
+
+/** Returns the number of rows purged. Run on app start. */
+export async function purgeOldDeleted(
+  db: SqlDb,
+  now: number,
+  maxAgeMs: number = PURGE_AFTER_MS
+): Promise<number> {
+  const result = await db.runAsync(
+    'DELETE FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?',
+    [now - maxAgeMs]
+  );
+  return result.changes;
+}
