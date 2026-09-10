@@ -1,15 +1,19 @@
 {
   "expo": {
-    "name": "Jotter",
-    "slug": "jotter",
+    "name": "Junior - Notes",
+    "slug": "junior-notes",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "jotter",
+    "scheme": "juniornotes",
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.dervishaj.notebook",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "infoPlist": {
+        "CFBundleDisplayName": "Junior",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
