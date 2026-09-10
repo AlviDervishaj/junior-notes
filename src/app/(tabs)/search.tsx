@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/kraft/empty-state';
 import { NoteCard } from '@/components/kraft/note-card';
 import { Paper } from '@/components/kraft/paper';
 import { useNotes } from '@/hooks/use-notes';
+import { useNow } from '@/hooks/use-now';
 import { Colors, Layout, Type } from '@/theme';
 
 export default function SearchScreen() {
@@ -14,7 +15,7 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const { notes } = useNotes(query);
-  const now = Date.now();
+  const now = useNow();
 
   const searching = query.trim() !== '';
 

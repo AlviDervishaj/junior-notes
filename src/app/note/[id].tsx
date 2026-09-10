@@ -25,6 +25,7 @@ import {
 } from '@/db/notes';
 import { useAutosave } from '@/hooks/use-autosave';
 import { useNote } from '@/hooks/use-note';
+import { useNow } from '@/hooks/use-now';
 import { countWords, formatNoteDate } from '@/lib/format-date';
 import { CATEGORIES, Colors, Layout, Type, type NoteCategory } from '@/theme';
 
@@ -140,7 +141,8 @@ export default function EditorScreen() {
     router.back();
   }, [db, draft, flush, router]);
 
-  const timestamp = note?.updatedAt ?? Date.now();
+  const now = useNow();
+  const timestamp = note?.updatedAt ?? now;
 
   return (
     <View style={styles.root}>
@@ -167,7 +169,7 @@ export default function EditorScreen() {
               style={[Type.screenTitle, styles.title]}
             />
             <Text style={[Type.metaLabel, styles.meta]}>
-              {`${formatNoteDate(timestamp, Date.now())} · ${countWords(draft.body)} WORDS`}
+              {`${formatNoteDate(timestamp, now)} · ${countWords(draft.body)} WORDS`}
             </Text>
 
             <View style={styles.actionRow}>

@@ -48,3 +48,24 @@ describe('useAutosave', () => {
     expect(result.current.status).toBe('unsaved');
   });
 });
+
+describe('useAutosave when the save callback identity changes', () => {
+  test('flushes the pending value through the outgoing saver', async () => {
+    const first = jest.fn().mockResolvedValue(undefined);
+    const second = jest.fn().mockResolvedValue(undefined);
+
+    const { result, rerender } = await renderHook(
+      ({ save }: { save: (v: string) => Promise<void> }) => useAutosave(save, 10_000),
+      { initialProps: { save: first } }
+    );
+
+    await act(() => result.current.change('half typed'));
+    // Swapping the callback replaces the saver; the outgoing one must not
+    // silently drop the pending write.
+    await act(async () => {
+      await rerender({ save: second });
+    });
+
+    expect(first).toHaveBeenCalledWith('half typed');
+  });
+});

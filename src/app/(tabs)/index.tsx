@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { CoverHeader } from '@/components/kraft/cover-header';
@@ -11,23 +11,25 @@ import { Paper } from '@/components/kraft/paper';
 import { UndoBar } from '@/components/kraft/undo-bar';
 import { restore } from '@/db/notes';
 import { useNotes } from '@/hooks/use-notes';
+import { useNow } from '@/hooks/use-now';
 import { Layout } from '@/theme';
 
 export default function NotesScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
   const { notes, reload } = useNotes();
-  const now = Date.now();
+  const now = useNow();
 
   // The editor hands the deleted id back as a route param so the undo
-  // affordance lives on the list, where the note reappears.
+  // affordance lives on the list, where the note reappears. Visibility is
+  // derived from the param and a dismissed marker, rather than synced into
+  // state by an effect.
   const { deleted } = useLocalSearchParams<{ deleted?: string }>();
-  const [undoId, setUndoId] = useState<number | null>(null);
+  const [dismissed, setDismissed] = useState<string | null>(null);
 
-  useEffect(() => {
-    const parsed = Number(deleted);
-    if (deleted !== undefined && Number.isFinite(parsed)) setUndoId(parsed);
-  }, [deleted]);
+  const undoId = Number(deleted);
+  const canUndo =
+    deleted !== undefined && deleted !== dismissed && Number.isFinite(undoId);
 
   const entryCount = notes.length === 1 ? '1 entry' : `${notes.length} entries`;
 
@@ -57,14 +59,14 @@ export default function NotesScreen() {
         <Fab accessibilityLabel="New note" onPress={() => router.push('/note/new')} />
 
         <UndoBar
-          visible={undoId !== null}
+          visible={canUndo}
           message="Note deleted"
           onUndo={async () => {
-            if (undoId !== null) await restore(db, undoId);
-            setUndoId(null);
+            await restore(db, undoId);
+            setDismissed(deleted ?? null);
             reload();
           }}
-          onDismiss={() => setUndoId(null)}
+          onDismiss={() => setDismissed(deleted ?? null)}
         />
       </Paper>
     </View>

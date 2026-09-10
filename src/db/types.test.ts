@@ -11,7 +11,7 @@ import { rowToNote, type NoteRow, type SqlDb } from '@/db/types';
  * value to construct in a Node test environment.
  */
 type Assert<T extends true> = T;
-type RealDatabaseSatisfiesSqlDb = Assert<SQLiteDatabase extends SqlDb ? true : false>;
+export type RealDatabaseSatisfiesSqlDb = Assert<SQLiteDatabase extends SqlDb ? true : false>;
 
 const row = (over: Partial<NoteRow> = {}): NoteRow => ({
   id: 1,
