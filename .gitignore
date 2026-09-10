@@ -44,3 +44,6 @@ example
 
 # Local App Store prep notes
 requirements.txt
+
+# Superpowers brainstorming companion (local mockups)
+.superpowers/
