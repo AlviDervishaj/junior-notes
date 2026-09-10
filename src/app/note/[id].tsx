@@ -237,7 +237,11 @@ const styles = StyleSheet.create({
     paddingBottom: Layout.space.md,
   },
   barText: { color: Colors.text.onKraft },
-  page: { padding: Layout.space.lg, paddingBottom: Layout.space.xxl * 2 },
+  page: {
+    flexGrow: 1,
+    padding: Layout.space.lg,
+    paddingBottom: Layout.space.xxl * 2,
+  },
   title: { color: Colors.text.primary, paddingVertical: Layout.space.xs },
   meta: { color: Colors.text.secondary, marginBottom: Layout.space.lg },
   actionRow: {
@@ -250,7 +254,7 @@ const styles = StyleSheet.create({
   destructive: { color: Colors.accent, marginLeft: 'auto' },
   categoryDot: { width: 14, height: 14, borderRadius: Layout.radius.chip, opacity: 0.45 },
   categoryDotActive: { opacity: 1 },
-  bodyWrap: { flexDirection: 'row', gap: Layout.space.md },
+  bodyWrap: { flex: 1, flexDirection: 'row', gap: Layout.space.md },
   marginRule: { width: 1, backgroundColor: Colors.marginRule, opacity: 0.55 },
-  body: { color: Colors.text.primary, flex: 1, minHeight: 320 },
+  body: { color: Colors.text.primary, flex: 1 },
 });

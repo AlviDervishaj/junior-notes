@@ -14,7 +14,11 @@ export type EmptyStateProps = {
 export function EmptyState({ stamp, title, detail }: EmptyStateProps) {
   return (
     <View style={styles.root}>
-      <Stamp label={stamp} tone="onPaper" rotate={-2.5} />
+      {/* Stamp hugs its content via alignSelf: 'flex-start', so it needs a
+          content-sized wrapper to sit centred with the rest of the block. */}
+      <View>
+        <Stamp label={stamp} tone="onPaper" rotate={-2.5} />
+      </View>
       <Text style={[Type.cardTitle, styles.title]}>{title}</Text>
       {detail ? <Text style={[Type.excerpt, styles.detail]}>{detail}</Text> : null}
     </View>
