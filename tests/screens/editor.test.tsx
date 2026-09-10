@@ -7,6 +7,9 @@ import EditorScreen from '@/app/note/[id]';
 const mockCreateNote = jest.fn().mockResolvedValue(7);
 const mockUpdateNote = jest.fn().mockResolvedValue(undefined);
 const mockHardDelete = jest.fn().mockResolvedValue(undefined);
+const mockSoftDelete = jest.fn().mockResolvedValue(undefined);
+const mockSetPinned = jest.fn().mockResolvedValue(undefined);
+const mockSetCategory = jest.fn().mockResolvedValue(undefined);
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
 let mockParams: { id: string } = { id: 'new' };
@@ -24,6 +27,9 @@ jest.mock('@/db/notes', () => ({
   createNote: (...args: unknown[]) => mockCreateNote(...args),
   updateNote: (...args: unknown[]) => mockUpdateNote(...args),
   hardDelete: (...args: unknown[]) => mockHardDelete(...args),
+  softDelete: (...args: unknown[]) => mockSoftDelete(...args),
+  setPinned: (...args: unknown[]) => mockSetPinned(...args),
+  setCategory: (...args: unknown[]) => mockSetCategory(...args),
 }));
 
 jest.mock('@/hooks/use-note', () => ({
@@ -99,5 +105,76 @@ describe('EditorScreen', () => {
     await fireEvent.press(screen.getByTestId('editor-back'));
     expect(mockBack).toHaveBeenCalled();
     expect(mockCreateNote).not.toHaveBeenCalled();
+  });
+});
+
+describe('EditorScreen actions', () => {
+  const saved = {
+    id: 3,
+    title: 'On the new flat',
+    body: 'boiler service record',
+    category: null,
+    pinned: false,
+    createdAt: 1,
+    updatedAt: 1,
+  };
+
+  beforeEach(() => {
+    mockParams = { id: '3' };
+    mockNote = saved;
+    mockLoading = false;
+    jest.clearAllMocks();
+  });
+
+  test('delete asks for confirmation before removing anything', async () => {
+    await render(<EditorScreen />);
+
+    await fireEvent.press(screen.getByTestId('action-delete'));
+
+    expect(screen.getByText('Delete this note?')).toBeOnTheScreen();
+    expect(mockSoftDelete).not.toHaveBeenCalled();
+  });
+
+  test('cancelling the confirmation leaves the note alone', async () => {
+    await render(<EditorScreen />);
+
+    await fireEvent.press(screen.getByTestId('action-delete'));
+    await fireEvent.press(screen.getByTestId('confirm-cancel'));
+
+    expect(mockSoftDelete).not.toHaveBeenCalled();
+    expect(screen.queryByText('Delete this note?')).toBeNull();
+  });
+
+  test('confirming soft-deletes and hands the id back for undo', async () => {
+    await render(<EditorScreen />);
+
+    await fireEvent.press(screen.getByTestId('action-delete'));
+    await fireEvent.press(screen.getByTestId('confirm-accept'));
+
+    expect(mockSoftDelete).toHaveBeenCalledWith({}, 3, expect.any(Number));
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/',
+      params: { deleted: '3' },
+    });
+  });
+
+  test('the pin action reflects the note state and toggles it', async () => {
+    await render(<EditorScreen />);
+
+    expect(screen.getByText('PIN')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('action-pin'));
+
+    expect(mockSetPinned).toHaveBeenCalledWith({}, 3, true, expect.any(Number));
+    expect(screen.getByText('UNPIN')).toBeOnTheScreen();
+  });
+
+  test('choosing a category sets it, and choosing it again clears it', async () => {
+    await render(<EditorScreen />);
+
+    await fireEvent.press(screen.getByTestId('action-category-home'));
+    expect(mockSetCategory).toHaveBeenLastCalledWith({}, 3, 'home', expect.any(Number));
+
+    await fireEvent.press(screen.getByTestId('action-category-home'));
+    expect(mockSetCategory).toHaveBeenLastCalledWith({}, 3, null, expect.any(Number));
   });
 });

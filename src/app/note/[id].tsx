@@ -13,12 +13,20 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ConfirmDialog } from '@/components/kraft/confirm-dialog';
 import { Paper } from '@/components/kraft/paper';
-import { createNote, hardDelete, updateNote } from '@/db/notes';
+import {
+  createNote,
+  hardDelete,
+  setCategory,
+  setPinned,
+  softDelete,
+  updateNote,
+} from '@/db/notes';
 import { useAutosave } from '@/hooks/use-autosave';
 import { useNote } from '@/hooks/use-note';
 import { countWords, formatNoteDate } from '@/lib/format-date';
-import { Colors, Layout, Type } from '@/theme';
+import { CATEGORIES, Colors, Layout, Type, type NoteCategory } from '@/theme';
 
 type Draft = { title: string; body: string };
 
@@ -40,6 +48,9 @@ export default function EditorScreen() {
   const existingId = !isNew && Number.isFinite(parsed) ? parsed : null;
 
   const { note, loading } = useNote(existingId);
+  const [confirming, setConfirming] = useState(false);
+  const [pinned, setPinnedLocal] = useState(false);
+  const [category, setCategoryLocal] = useState<NoteCategory | null>(null);
   const [draft, setDraft] = useState<Draft>({ title: '', body: '' });
   const noteIdRef = useRef<number | null>(existingId);
   const hydrated = useRef(false);
@@ -47,6 +58,8 @@ export default function EditorScreen() {
   useEffect(() => {
     if (note && !hydrated.current) {
       setDraft({ title: note.title, body: note.body });
+      setPinnedLocal(note.pinned);
+      setCategoryLocal(note.category);
       hydrated.current = true;
     }
   }, [note]);
@@ -82,6 +95,41 @@ export default function EditorScreen() {
     },
     [change]
   );
+
+  /** Actions need a saved row, so flush any pending draft write first. */
+  const withSavedNote = useCallback(
+    async (action: (id: number) => Promise<void>) => {
+      await flush();
+      if (noteIdRef.current !== null) await action(noteIdRef.current);
+    },
+    [flush]
+  );
+
+  const togglePin = useCallback(async () => {
+    const next = !pinned;
+    setPinnedLocal(next);
+    await withSavedNote((id) => setPinned(db, id, next, Date.now()));
+  }, [db, pinned, withSavedNote]);
+
+  const chooseCategory = useCallback(
+    async (id: NoteCategory) => {
+      const next = category === id ? null : id;
+      setCategoryLocal(next);
+      await withSavedNote((noteId) => setCategory(db, noteId, next, Date.now()));
+    },
+    [category, db, withSavedNote]
+  );
+
+  const remove = useCallback(async () => {
+    setConfirming(false);
+    const deletedId = noteIdRef.current;
+    if (deletedId !== null) {
+      await softDelete(db, deletedId, Date.now());
+      router.replace({ pathname: '/', params: { deleted: String(deletedId) } });
+      return;
+    }
+    router.replace('/');
+  }, [db, router]);
 
   const leave = useCallback(async () => {
     await flush();
@@ -122,6 +170,30 @@ export default function EditorScreen() {
               {`${formatNoteDate(timestamp, Date.now())} · ${countWords(draft.body)} WORDS`}
             </Text>
 
+            <View style={styles.actionRow}>
+              <Pressable testID="action-pin" onPress={togglePin} hitSlop={8}>
+                <Text style={[Type.tabLabel, styles.action]}>{pinned ? 'UNPIN' : 'PIN'}</Text>
+              </Pressable>
+              {CATEGORIES.map((option) => (
+                <Pressable
+                  key={option.id}
+                  testID={`action-category-${option.id}`}
+                  onPress={() => chooseCategory(option.id)}
+                  hitSlop={8}>
+                  <View
+                    style={[
+                      styles.categoryDot,
+                      { backgroundColor: option.color },
+                      category === option.id && styles.categoryDotActive,
+                    ]}
+                  />
+                </Pressable>
+              ))}
+              <Pressable testID="action-delete" onPress={() => setConfirming(true)} hitSlop={8}>
+                <Text style={[Type.tabLabel, styles.destructive]}>DELETE</Text>
+              </Pressable>
+            </View>
+
             <View style={styles.bodyWrap}>
               <View style={styles.marginRule} />
               <TextInput
@@ -138,6 +210,15 @@ export default function EditorScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </Paper>
+
+      <ConfirmDialog
+        visible={confirming}
+        title="Delete this note?"
+        detail="You can undo this from the notebook."
+        confirmLabel="DELETE"
+        onConfirm={remove}
+        onCancel={() => setConfirming(false)}
+      />
     </View>
   );
 }
@@ -157,6 +238,16 @@ const styles = StyleSheet.create({
   page: { padding: Layout.space.lg, paddingBottom: Layout.space.xxl * 2 },
   title: { color: Colors.text.primary, paddingVertical: Layout.space.xs },
   meta: { color: Colors.text.secondary, marginBottom: Layout.space.lg },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Layout.space.md,
+    marginBottom: Layout.space.lg,
+  },
+  action: { color: Colors.text.secondary },
+  destructive: { color: Colors.accent, marginLeft: 'auto' },
+  categoryDot: { width: 14, height: 14, borderRadius: Layout.radius.chip, opacity: 0.45 },
+  categoryDotActive: { opacity: 1 },
   bodyWrap: { flexDirection: 'row', gap: Layout.space.md },
   marginRule: { width: 1, backgroundColor: Colors.marginRule, opacity: 0.55 },
   body: { color: Colors.text.primary, flex: 1, minHeight: 320 },

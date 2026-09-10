@@ -1,4 +1,6 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { CoverHeader } from '@/components/kraft/cover-header';
@@ -6,13 +8,26 @@ import { EmptyState } from '@/components/kraft/empty-state';
 import { Fab } from '@/components/kraft/fab';
 import { NoteCard } from '@/components/kraft/note-card';
 import { Paper } from '@/components/kraft/paper';
+import { UndoBar } from '@/components/kraft/undo-bar';
+import { restore } from '@/db/notes';
 import { useNotes } from '@/hooks/use-notes';
 import { Layout } from '@/theme';
 
 export default function NotesScreen() {
   const router = useRouter();
-  const { notes } = useNotes();
+  const db = useSQLiteContext();
+  const { notes, reload } = useNotes();
   const now = Date.now();
+
+  // The editor hands the deleted id back as a route param so the undo
+  // affordance lives on the list, where the note reappears.
+  const { deleted } = useLocalSearchParams<{ deleted?: string }>();
+  const [undoId, setUndoId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const parsed = Number(deleted);
+    if (deleted !== undefined && Number.isFinite(parsed)) setUndoId(parsed);
+  }, [deleted]);
 
   const entryCount = notes.length === 1 ? '1 entry' : `${notes.length} entries`;
 
@@ -40,6 +55,17 @@ export default function NotesScreen() {
           contentContainerStyle={styles.list}
         />
         <Fab accessibilityLabel="New note" onPress={() => router.push('/note/new')} />
+
+        <UndoBar
+          visible={undoId !== null}
+          message="Note deleted"
+          onUndo={async () => {
+            if (undoId !== null) await restore(db, undoId);
+            setUndoId(null);
+            reload();
+          }}
+          onDismiss={() => setUndoId(null)}
+        />
       </Paper>
     </View>
   );
