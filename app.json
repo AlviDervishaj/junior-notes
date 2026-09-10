@@ -6,9 +6,11 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "fitorganiser",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.shunger.notebook",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -36,7 +38,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#B08A57",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
