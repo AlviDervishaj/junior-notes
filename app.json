@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "fit-organiser",
-    "slug": "fit-organiser",
+    "name": "Jotter",
+    "slug": "jotter",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "fitorganiser",
+    "scheme": "jotter",
     "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.shunger.notebook",
+      "bundleIdentifier": "com.dervishaj.notebook",
       "buildNumber": "1"
     },
     "android": {
