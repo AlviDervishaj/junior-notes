@@ -4051,6 +4051,34 @@ No spec requirement is unassigned.
 
 **Type consistency:** `SqlDb` (Task 5) is consumed unchanged by Tasks 6–8. `Note` field names (`createdAt`, `updatedAt`, `pinned: boolean`) are used consistently in Tasks 6, 7, 12, 15, 16. `SaveStatus` values `idle|saving|saved|unsaved` (Task 9) match `STATUS_TEXT` keys in Task 16. `formatNoteDate(ts, now)` keeps its two-argument shape in Tasks 4, 12, 16. `createTestDb()` normalises node:sqlite's `lastInsertRowid` to expo's `lastInsertRowId`, matching `SqlRunResult`.
 
+**Fixed during Task 19 execution (found by running the app, not the tests):**
+- `SplashScreen.hideAsync()` was called inside `SQLiteProvider`'s `onInit`.
+  The provider renders `null` until the database opens, so a hung open left the
+  splash up permanently. Splash dismissal is now tied to font loading alone,
+  with a paper-coloured ground behind the provider.
+- `SQLiteProvider`'s default error handler **rethrows during render**, so the
+  Task 13 design (catch in `onInit`, set state, rethrow) would have crashed the
+  tree rather than showing `ErrorScreen`. The `onError` prop is the documented
+  interception point.
+- No task installed `eslint`, and `reactCompiler: true` in `app.json` means the
+  React Compiler lint rules apply. Eight violations appeared in new code:
+  `Date.now()` during render (fixed with a new `useNow` hook), `setState`
+  inside effect bodies in `useNote` and the list screen (both replaced with
+  derived state), and read/write of a ref during render in `useAutosave`.
+- The web target did **not** build: `expo-sqlite` needs `wasm` in
+  `metro.config.js` `assetExts` plus COOP/COEP headers. Fixed, and web now
+  exports all 7 routes — though `wa-sqlite` then hangs at runtime, which is
+  expo-sqlite's documented web *alpha* status. Spec A2 only requires that web
+  builds.
+- `@expo-google-fonts` root indexes re-export every weight, so Metro bundled
+  all 22 `.ttf` files. Importing per-weight subpaths took the iOS export from
+  4.0MB to 2.8MB.
+- Screen tests must NOT live under `src/app`: expo-router registers every file
+  there as a route, and `src/app/(tabs)/index.test.tsx` became a navigable
+  `/index.test`. They live in `tests/screens/` instead.
+- Components calling `useSafeAreaInsets` throw without a `SafeAreaProvider`
+  ancestor, so tests render through `tests/support/render.tsx`.
+
 **Fixed during Task 5 execution:** two gaps in the data layer. (a) No task
 installed `expo-sqlite` — added as Task 5 Step 0. (b) `SqlDb` declared
 `params?: unknown[]`, which the real `SQLiteDatabase` is **not** assignable to,
