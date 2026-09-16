@@ -65,4 +65,12 @@ describe('NoteCard', () => {
     await render(<NoteCard note={note({ body: '' })} now={NOW} onPress={jest.fn()} />);
     expect(screen.getByText('Grocery list')).toBeOnTheScreen();
   });
+
+  test('renders checklist progress badge when body contains task items', async () => {
+    const taskBody = '- [x] Eggs\n- [ ] Milk\n- [x] Bread';
+    await render(<NoteCard note={note({ body: taskBody })} now={NOW} onPress={jest.fn()} />);
+
+    expect(screen.getByTestId('note-checklist-badge-1')).toBeOnTheScreen();
+    expect(screen.getByText('☑ 2/3')).toBeOnTheScreen();
+  });
 });

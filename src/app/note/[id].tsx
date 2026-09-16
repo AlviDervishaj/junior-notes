@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ConfirmDialog } from '@/components/kraft/confirm-dialog';
 import { ExportNoteDialog } from '@/components/kraft/export-note-dialog';
+import { MarkdownToolbar } from '@/components/kraft/markdown-toolbar';
 import { Paper } from '@/components/kraft/paper';
 import { SplitNoteDialog } from '@/components/kraft/split-note-dialog';
 import {
@@ -28,6 +29,7 @@ import {
 import { useAutosave } from '@/hooks/use-autosave';
 import { useNote } from '@/hooks/use-note';
 import { useNow } from '@/hooks/use-now';
+import { applyMarkdownFormat, type MarkdownAction } from '@/lib/checklist';
 import { shareNoteContent, type ExportFormat } from '@/lib/export-note';
 import { countWords, formatNoteDate } from '@/lib/format-date';
 import { haptics } from '@/lib/haptics';
@@ -72,6 +74,7 @@ export default function EditorScreen() {
   const [pinned, setPinnedLocal] = useState(false);
   const [category, setCategoryLocal] = useState<NoteCategory | null>(null);
   const [draft, setDraft] = useState<Draft>({ title: '', body: '' });
+  const [selection, setSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
   const noteIdRef = useRef<number | null>(existingId);
   const hydrated = useRef(false);
 
@@ -121,6 +124,15 @@ export default function EditorScreen() {
       });
     },
     [change]
+  );
+
+  const handleMarkdownAction = useCallback(
+    (action: MarkdownAction) => {
+      const result = applyMarkdownFormat(draft.body, selection, action);
+      edit({ body: result.text });
+      setSelection(result.selection);
+    },
+    [draft.body, edit, selection]
   );
 
   const withSavedNote = useCallback(
@@ -311,6 +323,7 @@ export default function EditorScreen() {
                 testID="body-input"
                 value={draft.body}
                 onChangeText={(body) => edit({ body })}
+                onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
                 placeholder="Start writing…"
                 placeholderTextColor={Schemes[scheme].text.secondary}
                 multiline
@@ -319,6 +332,7 @@ export default function EditorScreen() {
               />
             </View>
           </ScrollView>
+          <MarkdownToolbar onAction={handleMarkdownAction} />
         </KeyboardAvoidingView>
       </Paper>
 

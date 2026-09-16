@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
 import type { Note } from '@/db/types';
+import { getChecklistSummary } from '@/lib/checklist';
 import { formatNoteDate } from '@/lib/format-date';
 import { haptics } from '@/lib/haptics';
 import { splitOnMatch } from '@/lib/highlight';
@@ -21,6 +22,7 @@ export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
   const scheme = useScheme();
   const category = categoryById(note.category);
   const categoryColor = category ? category.colors[scheme] : null;
+  const checklist = getChecklistSummary(note.body);
 
   return (
     <Pressable
@@ -60,6 +62,15 @@ export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
               style={[styles.categoryBadge, { borderColor: categoryColor }]}>
               <Text style={[styles.categoryBadgeText, { color: categoryColor }]}>
                 {category.label.toUpperCase()}
+              </Text>
+            </View>
+          ) : null}
+          {checklist.total > 0 ? (
+            <View
+              testID={`note-checklist-badge-${note.id}`}
+              style={styles.checklistBadge}>
+              <Text style={styles.checklistBadgeText}>
+                {`☑ ${checklist.completed}/${checklist.total}`}
               </Text>
             </View>
           ) : null}
@@ -113,6 +124,20 @@ const useStyles = makeThemedStyles((c) => ({
     fontSize: 7.5,
     letterSpacing: 0.8,
     fontFamily: Type.metaLabel.fontFamily,
+  },
+  checklistBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: Layout.radius.chip,
+    borderWidth: Layout.hairline,
+    borderColor: c.border.hairline,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
+  checklistBadgeText: {
+    fontSize: 7.5,
+    letterSpacing: 0.8,
+    fontFamily: Type.metaLabel.fontFamily,
+    color: c.text.secondary,
   },
   match: { backgroundColor: c.highlight },
   pin: {

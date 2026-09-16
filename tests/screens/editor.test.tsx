@@ -240,3 +240,63 @@ describe('EditorScreen actions', () => {
     expect(screen.queryByText('EXPORT & SHARE')).toBeNull();
   });
 });
+
+describe('EditorScreen markdown toolbar', () => {
+  beforeEach(() => {
+    mockParams = { id: 'new' };
+    mockNote = null;
+    mockLoading = false;
+    jest.clearAllMocks();
+  });
+
+  test('renders markdown toolbar and buttons', async () => {
+    await render(<EditorScreen />);
+
+    expect(screen.getByTestId('markdown-toolbar')).toBeOnTheScreen();
+    expect(screen.getByTestId('markdown-action-task')).toBeOnTheScreen();
+    expect(screen.getByTestId('markdown-action-heading')).toBeOnTheScreen();
+    expect(screen.getByTestId('markdown-action-bold')).toBeOnTheScreen();
+  });
+
+  test('applies task markdown formatting to current body text', async () => {
+    await render(<EditorScreen />);
+    const bodyInput = screen.getByTestId('body-input');
+
+    await fireEvent.changeText(bodyInput, 'Buy coffee');
+    await fireEvent(bodyInput, 'selectionChange', {
+      nativeEvent: { selection: { start: 0, end: 0 } },
+    });
+
+    await fireEvent.press(screen.getByTestId('markdown-action-task'));
+
+    expect(bodyInput).toHaveProp('value', '- [ ] Buy coffee');
+  });
+
+  test('applies bold formatting to selected text in note body', async () => {
+    await render(<EditorScreen />);
+    const bodyInput = screen.getByTestId('body-input');
+
+    await fireEvent.changeText(bodyInput, 'Important note');
+    await fireEvent(bodyInput, 'selectionChange', {
+      nativeEvent: { selection: { start: 0, end: 9 } },
+    });
+
+    await fireEvent.press(screen.getByTestId('markdown-action-bold'));
+
+    expect(bodyInput).toHaveProp('value', '**Important** note');
+  });
+
+  test('inserts horizontal divider into note body', async () => {
+    await render(<EditorScreen />);
+    const bodyInput = screen.getByTestId('body-input');
+
+    await fireEvent.changeText(bodyInput, 'Section 1');
+    await fireEvent(bodyInput, 'selectionChange', {
+      nativeEvent: { selection: { start: 9, end: 9 } },
+    });
+
+    await fireEvent.press(screen.getByTestId('markdown-action-divider'));
+
+    expect(bodyInput).toHaveProp('value', 'Section 1\n---\n');
+  });
+});
