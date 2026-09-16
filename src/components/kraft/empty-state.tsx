@@ -1,6 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { Colors, Layout, Type } from '@/theme';
+import { Layout, makeThemedStyles, Type } from '@/theme';
 
 import { Stamp } from './stamp';
 
@@ -12,6 +12,8 @@ export type EmptyStateProps = {
 
 /** Stamped empty state, in the aesthetic rather than a generic illustration. */
 export function EmptyState({ stamp, title, detail }: EmptyStateProps) {
+  const styles = useStyles();
+
   return (
     <View style={styles.root}>
       {/* Stamp hugs its content via alignSelf: 'flex-start', so it needs a
@@ -25,8 +27,8 @@ export function EmptyState({ stamp, title, detail }: EmptyStateProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeThemedStyles((c) => ({
   root: { alignItems: 'center', paddingTop: Layout.space.xxl * 2, gap: Layout.space.md },
-  title: { color: Colors.text.primary },
-  detail: { color: Colors.text.secondary, textAlign: 'center', paddingHorizontal: Layout.space.xl },
-});
+  title: { color: c.text.primary },
+  detail: { color: c.text.secondary, textAlign: 'center', paddingHorizontal: Layout.space.xl },
+}));

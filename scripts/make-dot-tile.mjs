@@ -7,8 +7,14 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
 const PITCH = 11; // points; must match Layout.dotSpacing
-const DOT = [0xd6, 0xc8, 0xac]; // Palette.rule
 const RADIUS = 0.9; // points
+
+// One variant per scheme. Colours must match Palette.rule / PaletteDark.rule
+// in src/theme/colors.ts.
+const VARIANTS = [
+  { suffix: '', dot: [0xd6, 0xc8, 0xac] },
+  { suffix: '-dark', dot: [0x3a, 0x31, 0x25] },
+];
 
 // One tile per screen density, so the dots stay crisp instead of being
 // upscaled from the 1x bitmap on 2x/3x displays.
@@ -34,7 +40,7 @@ const chunk = (type, data) => {
   return Buffer.concat([len, body, crc]);
 };
 
-function makeTile(scale) {
+function makeTile(scale, dot) {
   const size = PITCH * scale;
   const radius = RADIUS * scale;
   const centre = 1.5 * scale;
@@ -47,7 +53,7 @@ function makeTile(scale) {
       const dist = Math.hypot(x - centre, y - centre);
       // Feather the edge by roughly one device pixel for a soft printed dot.
       const alpha = dist <= radius ? 255 : dist <= radius + 0.7 * scale ? 110 : 0;
-      raw.push(DOT[0], DOT[1], DOT[2], alpha);
+      raw.push(dot[0], dot[1], dot[2], alpha);
     }
   }
 
@@ -69,10 +75,12 @@ function makeTile(scale) {
 }
 
 mkdirSync('assets/images', { recursive: true });
-for (const scale of DENSITIES) {
-  const suffix = scale === 1 ? '' : `@${scale}x`;
-  const path = `assets/images/dot-grid${suffix}.png`;
-  const png = makeTile(scale);
-  writeFileSync(path, png);
-  console.log(`wrote ${path} (${PITCH * scale}x${PITCH * scale}, ${png.length} bytes)`);
+for (const variant of VARIANTS) {
+  for (const scale of DENSITIES) {
+    const density = scale === 1 ? '' : `@${scale}x`;
+    const path = `assets/images/dot-grid${variant.suffix}${density}.png`;
+    const png = makeTile(scale, variant.dot);
+    writeFileSync(path, png);
+    console.log(`wrote ${path} (${PITCH * scale}x${PITCH * scale}, ${png.length} bytes)`);
+  }
 }

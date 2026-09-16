@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryFilter } from '@/components/kraft/category-filter';
@@ -9,11 +9,13 @@ import { NoteCard } from '@/components/kraft/note-card';
 import { Paper } from '@/components/kraft/paper';
 import { useNotes } from '@/hooks/use-notes';
 import { useNow } from '@/hooks/use-now';
-import { Colors, Layout, type NoteCategory, Type } from '@/theme';
+import { Layout, makeThemedStyles, type NoteCategory, Schemes, Type, useScheme } from '@/theme';
 
 export default function SearchScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const styles = useStyles();
+  const scheme = useScheme();
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<NoteCategory | null>(null);
   const { notes } = useNotes(query, selectedCategory);
@@ -29,7 +31,7 @@ export default function SearchScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="find in all entries…"
-          placeholderTextColor={Colors.text.secondary}
+          placeholderTextColor={Schemes[scheme].text.secondary}
           autoCorrect={false}
           autoCapitalize="none"
           style={[Type.metaLabel, styles.input]}
@@ -71,22 +73,22 @@ export default function SearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeThemedStyles((c) => ({
   root: { flex: 1 },
   bar: {
-    backgroundColor: Colors.surface.cover,
+    backgroundColor: c.surface.cover,
     paddingHorizontal: Layout.space.lg,
     paddingBottom: Layout.space.md,
   },
   input: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: c.surface.card,
     borderWidth: Layout.hairline,
-    borderColor: Colors.border.card,
+    borderColor: c.border.card,
     borderRadius: Layout.radius.card,
-    color: Colors.text.primary,
+    color: c.text.primary,
     paddingHorizontal: Layout.space.md,
     paddingVertical: Layout.space.md,
     fontSize: 13,
   },
   list: { paddingBottom: Layout.space.xxl * 2 },
-});
+}));

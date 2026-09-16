@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { Colors, Layout, Type } from '@/theme';
+import { haptics } from '@/lib/haptics';
+import { Layout, makeThemedStyles, Type } from '@/theme';
 
 export type UndoBarProps = {
   visible: boolean;
@@ -18,6 +19,8 @@ export function UndoBar({
   onDismiss,
   timeoutMs = 5000,
 }: UndoBarProps) {
+  const styles = useStyles();
+
   useEffect(() => {
     if (!visible) return;
     const timer = setTimeout(onDismiss, timeoutMs);
@@ -29,20 +32,26 @@ export function UndoBar({
   return (
     <View style={styles.bar}>
       <Text style={[Type.metaLabel, styles.message]}>{message}</Text>
-      <Pressable testID="undo-action" onPress={onUndo} hitSlop={10}>
+      <Pressable
+        testID="undo-action"
+        onPress={() => {
+          haptics.success();
+          onUndo();
+        }}
+        hitSlop={10}>
         <Text style={[Type.tabLabel, styles.action]}>UNDO</Text>
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeThemedStyles((c) => ({
   bar: {
     position: 'absolute',
     left: Layout.space.md,
     right: Layout.space.md,
     bottom: Layout.space.lg,
-    backgroundColor: Colors.text.primary,
+    backgroundColor: c.text.primary,
     borderRadius: Layout.radius.card,
     paddingHorizontal: Layout.space.lg,
     paddingVertical: Layout.space.md,
@@ -50,6 +59,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  message: { color: Colors.text.onKraft },
-  action: { color: Colors.surface.cover },
-});
+  message: { color: c.text.onKraft },
+  action: { color: c.surface.cover },
+}));

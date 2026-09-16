@@ -1,6 +1,7 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 
-import { Colors, Layout, Type } from '@/theme';
+import { haptics } from '@/lib/haptics';
+import { Layout, makeThemedStyles, Type } from '@/theme';
 
 export type SplitNoteDialogProps = {
   visible: boolean;
@@ -23,6 +24,8 @@ export function SplitNoteDialog({
   onConfirm,
   onCancel,
 }: SplitNoteDialogProps) {
+  const styles = useStyles();
+
   if (!visible) return null;
 
   const firstExcerpt =
@@ -66,7 +69,10 @@ export function SplitNoteDialog({
               testID="split-confirm-cancel"
               accessibilityRole="button"
               accessibilityLabel="Cancel split"
-              onPress={onCancel}
+              onPress={() => {
+                haptics.light();
+                onCancel();
+              }}
               style={[styles.button, styles.cancelButton]}>
               <Text style={[Type.tabLabel, styles.cancelText]}>CANCEL</Text>
             </Pressable>
@@ -74,7 +80,10 @@ export function SplitNoteDialog({
               testID="split-confirm-accept"
               accessibilityRole="button"
               accessibilityLabel="Confirm split"
-              onPress={onConfirm}
+              onPress={() => {
+                haptics.success();
+                onConfirm();
+              }}
               style={[styles.button, styles.confirmButton]}>
               <Text style={[Type.tabLabel, styles.confirmText]}>SPLIT NOTE</Text>
             </Pressable>
@@ -85,10 +94,10 @@ export function SplitNoteDialog({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeThemedStyles((c) => ({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(34, 48, 63, 0.45)',
+    backgroundColor: c.surface.scrim,
     justifyContent: 'center',
     alignItems: 'center',
     padding: Layout.space.lg,
@@ -96,45 +105,45 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: c.surface.card,
     borderRadius: Layout.radius.card,
     borderWidth: Layout.hairline,
-    borderColor: Colors.border.card,
+    borderColor: c.border.card,
     padding: Layout.space.lg,
     gap: Layout.space.md,
   },
   title: {
-    color: Colors.text.primary,
+    color: c.text.primary,
     fontSize: 13,
     letterSpacing: 1.2,
   },
   description: {
-    color: Colors.text.secondary,
+    color: c.text.secondary,
     fontSize: 13,
   },
   previewContainer: {
     gap: Layout.space.sm,
   },
   previewBox: {
-    backgroundColor: Colors.surface.page,
+    backgroundColor: c.surface.page,
     padding: Layout.space.md,
     borderRadius: Layout.radius.chip,
     borderWidth: Layout.hairline,
-    borderColor: Colors.border.hairline,
+    borderColor: c.border.hairline,
     gap: 4,
   },
   partLabel: {
     fontSize: 8.5,
-    color: Colors.accent,
+    color: c.accent,
     letterSpacing: 1,
   },
   previewTitle: {
     fontSize: 14,
-    color: Colors.text.primary,
+    color: c.text.primary,
   },
   previewBody: {
     fontSize: 12,
-    color: Colors.text.secondary,
+    color: c.text.secondary,
   },
   actions: {
     flexDirection: 'row',
@@ -152,18 +161,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    borderColor: Colors.border.hairline,
+    borderColor: c.border.hairline,
     backgroundColor: 'transparent',
   },
   confirmButton: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accent,
+    borderColor: c.accent,
+    backgroundColor: c.accent,
   },
   cancelText: {
-    color: Colors.text.secondary,
+    color: c.text.secondary,
   },
   confirmText: {
-    color: Colors.text.onKraft,
+    color: c.text.onKraft,
     fontWeight: '600',
   },
-});
+}));

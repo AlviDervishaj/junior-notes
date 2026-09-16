@@ -3,18 +3,19 @@ import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ErrorScreen } from '@/components/kraft/error-screen';
 import { migrate } from '@/db/migrations';
 import { purgeOldDeleted } from '@/db/notes';
 import type { SqlDb } from '@/db/types';
 import { useAppFonts } from '@/hooks/use-app-fonts';
-import { Colors } from '@/theme';
+import { makeThemedStyles } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const styles = useStyles();
   const { ready: fontsReady } = useAppFonts();
   const [dbError, setDbError] = useState<Error | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -63,7 +64,7 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: Colors.surface.page },
+            contentStyle: styles.stackContent,
           }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="note/[id]" options={{ animation: 'slide_from_right' }} />
@@ -73,6 +74,7 @@ export default function RootLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  ground: { flex: 1, backgroundColor: Colors.surface.page },
-});
+const useStyles = makeThemedStyles((c) => ({
+  ground: { flex: 1, backgroundColor: c.surface.page },
+  stackContent: { backgroundColor: c.surface.page },
+}));

@@ -1,9 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import type { Note } from '@/db/types';
 import { formatNoteDate } from '@/lib/format-date';
+import { haptics } from '@/lib/haptics';
 import { splitOnMatch } from '@/lib/highlight';
-import { categoryById, Colors, Layout, Type } from '@/theme';
+import { categoryById, Layout, makeThemedStyles, Type, useScheme } from '@/theme';
 
 import { CategorySquare } from './category-square';
 
@@ -16,12 +17,18 @@ export type NoteCardProps = {
 };
 
 export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
+  const styles = useStyles();
+  const scheme = useScheme();
   const category = categoryById(note.category);
+  const categoryColor = category ? category.colors[scheme] : null;
 
   return (
     <Pressable
       testID={`note-card-${note.id}`}
-      onPress={() => onPress(note.id)}
+      onPress={() => {
+        haptics.light();
+        onPress(note.id);
+      }}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={styles.titleRow}>
         <CategorySquare category={note.category} />
@@ -47,11 +54,11 @@ export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
       <View style={styles.metaRow}>
         <View style={styles.leftMeta}>
           <Text style={[Type.metaLabel, styles.date]}>{formatNoteDate(note.updatedAt, now)}</Text>
-          {category ? (
+          {category && categoryColor ? (
             <View
               testID={`note-category-badge-${note.id}`}
-              style={[styles.categoryBadge, { borderColor: category.color }]}>
-              <Text style={[styles.categoryBadgeText, { color: category.color }]}>
+              style={[styles.categoryBadge, { borderColor: categoryColor }]}>
+              <Text style={[styles.categoryBadgeText, { color: categoryColor }]}>
                 {category.label.toUpperCase()}
               </Text>
             </View>
@@ -68,12 +75,12 @@ export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeThemedStyles((c) => ({
   card: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: c.surface.card,
     borderRadius: Layout.radius.card,
     borderWidth: Layout.hairline,
-    borderColor: Colors.border.card,
+    borderColor: c.border.card,
     marginHorizontal: Layout.space.md,
     marginTop: Layout.space.sm,
     paddingHorizontal: Layout.space.md,
@@ -81,8 +88,8 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.72 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Layout.space.sm },
-  title: { color: Colors.text.primary, flexShrink: 1 },
-  excerpt: { color: Colors.text.secondary, marginTop: Layout.space.xs },
+  title: { color: c.text.primary, flexShrink: 1 },
+  excerpt: { color: c.text.secondary, marginTop: Layout.space.xs },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -94,7 +101,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Layout.space.sm,
   },
-  date: { color: Colors.text.secondary },
+  date: { color: c.text.secondary },
   categoryBadge: {
     paddingHorizontal: 5,
     paddingVertical: 1,
@@ -107,12 +114,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     fontFamily: Type.metaLabel.fontFamily,
   },
-  match: { backgroundColor: Colors.highlight },
+  match: { backgroundColor: c.highlight },
   pin: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: Layout.radius.chip,
     paddingHorizontal: 5,
     paddingVertical: 2,
   },
-  pinText: { color: Colors.text.onKraft, fontSize: 7, letterSpacing: 1.3 },
-});
+  pinText: { color: c.text.onKraft, fontSize: 7, letterSpacing: 1.3 },
+}));

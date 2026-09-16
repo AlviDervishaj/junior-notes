@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Layout, Type } from '@/theme';
+import { Layout, makeThemedStyles, Type } from '@/theme';
 
 export type StampProps = {
   label: string;
@@ -11,7 +11,8 @@ export type StampProps = {
 
 /** Rubber-stamped label. Always renders uppercase. */
 export function Stamp({ label, rotate = -1.4, tone = 'onKraft' }: StampProps) {
-  const color = tone === 'onKraft' ? Colors.text.onKraft : Colors.accent;
+  const themed = useThemedColors();
+  const color = tone === 'onKraft' ? themed.onKraft.color : themed.onPaper.color;
 
   return (
     <View style={[styles.stamp, { borderColor: color, transform: [{ rotate: `${rotate}deg` }] }]}>
@@ -29,3 +30,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
 });
+
+/** Only the colour varies; the box geometry is scheme-independent. */
+const useThemedColors = makeThemedStyles((c) => ({
+  onKraft: { color: c.text.onKraft },
+  onPaper: { color: c.accent },
+}));

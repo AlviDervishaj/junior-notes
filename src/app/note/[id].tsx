@@ -6,7 +6,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -29,8 +28,9 @@ import { useAutosave } from '@/hooks/use-autosave';
 import { useNote } from '@/hooks/use-note';
 import { useNow } from '@/hooks/use-now';
 import { countWords, formatNoteDate } from '@/lib/format-date';
+import { haptics } from '@/lib/haptics';
 import { splitNoteContent, type SplitNoteResult } from '@/lib/split-note';
-import { CATEGORIES, Colors, Layout, Type, type NoteCategory } from '@/theme';
+import { CATEGORIES, Layout, makeThemedStyles, Schemes, Type, useScheme, type NoteCategory } from '@/theme';
 
 type Draft = { title: string; body: string };
 
@@ -45,6 +45,8 @@ export default function EditorScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const db = useSQLiteContext();
+  const scheme = useScheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
 
   const isNew = rawId === 'new';
@@ -91,6 +93,13 @@ export default function EditorScreen() {
 
   const { status, change, flush } = useAutosave<Draft>(persist);
 
+  // Provide sensory feedback when autosave completes successfully
+  useEffect(() => {
+    if (status === 'saved') {
+      haptics.success();
+    }
+  }, [status]);
+
   const edit = useCallback(
     (patch: Partial<Draft>) => {
       setDraft((prev) => {
@@ -102,16 +111,17 @@ export default function EditorScreen() {
     [change]
   );
 
-  /** Actions need a saved row, so flush any pending draft write first. */
   const withSavedNote = useCallback(
-    async (action: (id: number) => Promise<void>) => {
+    async (fn: (id: number) => Promise<void>) => {
       await flush();
-      if (noteIdRef.current !== null) await action(noteIdRef.current);
+      const currentId = noteIdRef.current;
+      if (currentId !== null) await fn(currentId);
     },
     [flush]
   );
 
   const togglePin = useCallback(async () => {
+    haptics.medium();
     const next = !pinned;
     setPinnedLocal(next);
     await withSavedNote((id) => setPinned(db, id, next, Date.now()));
@@ -119,6 +129,7 @@ export default function EditorScreen() {
 
   const chooseCategory = useCallback(
     async (id: NoteCategory) => {
+      haptics.selection();
       const next = category === id ? null : id;
       setCategoryLocal(next);
       await withSavedNote((noteId) => setCategory(db, noteId, next, Date.now()));
@@ -127,6 +138,7 @@ export default function EditorScreen() {
   );
 
   const handleOpenSplit = useCallback(async () => {
+    haptics.medium();
     await flush();
     const res = splitNoteContent(draft.title, draft.body);
     setSplitPreview(res);
@@ -135,25 +147,30 @@ export default function EditorScreen() {
 
   const handleConfirmSplit = useCallback(async () => {
     if (!splitPreview) return;
+    const currentId = noteIdRef.current;
     const now = Date.now();
-    if (noteIdRef.current === null) {
-      const id1 = await createNote(db, {
+
+    if (currentId === null) {
+      // Note was not yet created in DB, create two new notes
+      const firstId = await createNote(db, {
         title: splitPreview.first.title,
         body: splitPreview.first.body,
         category,
         now,
       });
-      noteIdRef.current = id1;
       await createNote(db, {
         title: splitPreview.second.title,
         body: splitPreview.second.body,
         category,
-        now,
+        now: now + 1,
       });
+      setSplitting(false);
+      router.replace(`/note/${firstId}`);
     } else {
+      // Split existing note transactionally
       await splitNote(
         db,
-        noteIdRef.current,
+        currentId,
         {
           firstTitle: splitPreview.first.title,
           firstBody: splitPreview.first.body,
@@ -163,33 +180,30 @@ export default function EditorScreen() {
         },
         now
       );
+      setSplitting(false);
+      router.replace(`/note/${currentId}`);
     }
-    setDraft({
-      title: splitPreview.first.title,
-      body: splitPreview.first.body,
-    });
-    setSplitting(false);
-  }, [category, db, splitPreview]);
+  }, [category, db, router, splitPreview]);
 
   const remove = useCallback(async () => {
+    haptics.heavy();
     setConfirming(false);
     const deletedId = noteIdRef.current;
     if (deletedId !== null) {
       await softDelete(db, deletedId, Date.now());
-      router.replace({ pathname: '/', params: { deleted: String(deletedId) } });
-      return;
     }
-    router.replace('/');
+    router.replace({ pathname: '/', params: deletedId ? { deleted: String(deletedId) } : {} });
   }, [db, router]);
 
   const leave = useCallback(async () => {
+    haptics.light();
     await flush();
     const empty = draft.title.trim() === '' && draft.body.trim() === '';
     if (empty && noteIdRef.current !== null) {
       await hardDelete(db, noteIdRef.current);
     }
     router.back();
-  }, [db, draft, flush, router]);
+  }, [db, draft.body, draft.title, flush, router]);
 
   const now = useNow();
   const timestamp = note?.updatedAt ?? now;
@@ -215,7 +229,7 @@ export default function EditorScreen() {
               value={draft.title}
               onChangeText={(title) => edit({ title })}
               placeholder="Title"
-              placeholderTextColor={Colors.text.secondary}
+              placeholderTextColor={Schemes[scheme].text.secondary}
               style={[Type.screenTitle, styles.title]}
             />
             <Text style={[Type.metaLabel, styles.meta]}>
@@ -239,13 +253,19 @@ export default function EditorScreen() {
                   <View
                     style={[
                       styles.categoryDot,
-                      { backgroundColor: option.color },
+                      { backgroundColor: option.colors[scheme] },
                       category === option.id && styles.categoryDotActive,
                     ]}
                   />
                 </Pressable>
               ))}
-              <Pressable testID="action-delete" onPress={() => setConfirming(true)} hitSlop={8}>
+              <Pressable
+                testID="action-delete"
+                onPress={() => {
+                  haptics.warning();
+                  setConfirming(true);
+                }}
+                hitSlop={8}>
                 <Text style={[Type.tabLabel, styles.destructive]}>DELETE</Text>
               </Pressable>
             </View>
@@ -257,7 +277,7 @@ export default function EditorScreen() {
                 value={draft.body}
                 onChangeText={(body) => edit({ body })}
                 placeholder="Start writing…"
-                placeholderTextColor={Colors.text.secondary}
+                placeholderTextColor={Schemes[scheme].text.secondary}
                 multiline
                 textAlignVertical="top"
                 style={[Type.bodyText, styles.body]}
@@ -287,36 +307,36 @@ export default function EditorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeThemedStyles((c) => ({
   root: { flex: 1 },
   fill: { flex: 1 },
   bar: {
-    backgroundColor: Colors.surface.cover,
+    backgroundColor: c.surface.cover,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Layout.space.lg,
     paddingBottom: Layout.space.md,
   },
-  barText: { color: Colors.text.onKraft },
+  barText: { color: c.text.onKraft },
   page: {
     flexGrow: 1,
     padding: Layout.space.lg,
     paddingBottom: Layout.space.xxl * 2,
   },
-  title: { color: Colors.text.primary, paddingVertical: Layout.space.xs },
-  meta: { color: Colors.text.secondary, marginBottom: Layout.space.lg },
+  title: { color: c.text.primary, paddingVertical: Layout.space.xs },
+  meta: { color: c.text.secondary, marginBottom: Layout.space.lg },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Layout.space.md,
     marginBottom: Layout.space.lg,
   },
-  action: { color: Colors.text.secondary },
-  destructive: { color: Colors.accent, marginLeft: 'auto' },
+  action: { color: c.text.secondary },
+  destructive: { color: c.accent, marginLeft: 'auto' },
   categoryDot: { width: 14, height: 14, borderRadius: Layout.radius.chip, opacity: 0.45 },
   categoryDotActive: { opacity: 1 },
   bodyWrap: { flex: 1, flexDirection: 'row', gap: Layout.space.md },
-  marginRule: { width: 1, backgroundColor: Colors.marginRule, opacity: 0.55 },
-  body: { color: Colors.text.primary, flex: 1 },
-});
+  marginRule: { width: 1, backgroundColor: c.marginRule, opacity: 0.55 },
+  body: { color: c.text.primary, flex: 1 },
+}));

@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, Text } from 'react-native';
 
-import { Colors, FontFamily, Layout } from '@/theme';
+import { haptics } from '@/lib/haptics';
+import { FontFamily, Layout, makeThemedStyles } from '@/theme';
 
 export type FabProps = {
   onPress: () => void;
@@ -8,19 +9,24 @@ export type FabProps = {
 };
 
 export function Fab({ onPress, accessibilityLabel }: FabProps) {
+  const styles = useStyles();
+
   return (
     <Pressable
       testID="fab"
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
+      onPress={() => {
+        haptics.light();
+        onPress();
+      }}
       style={({ pressed }) => [styles.fab, pressed && styles.pressed]}>
       <Text style={styles.plus}>+</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeThemedStyles((c) => ({
   fab: {
     position: 'absolute',
     right: Layout.space.lg,
@@ -28,10 +34,10 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOpacity: 0.22,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
@@ -39,9 +45,9 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.82, transform: [{ scale: 0.96 }] },
   plus: {
-    color: Colors.text.onKraft,
+    color: c.text.onKraft,
     fontFamily: FontFamily.chrome,
     fontSize: 26,
     lineHeight: 30,
   },
-});
+}));

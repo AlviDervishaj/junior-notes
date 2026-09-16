@@ -17,7 +17,11 @@ module.exports = {
     {
       displayName: 'logic',
       testEnvironment: 'node',
-      testMatch: ['<rootDir>/src/lib/**/*.test.ts', '<rootDir>/src/db/**/*.test.ts'],
+      testMatch: [
+        '<rootDir>/src/lib/**/*.test.ts',
+        '<rootDir>/src/db/**/*.test.ts',
+        '<rootDir>/src/theme/**/*.test.ts',
+      ],
       transform: {
         '^.+\\.[jt]sx?$': ['babel-jest', { presets: ['babel-preset-expo'] }],
       },
@@ -31,6 +35,8 @@ module.exports = {
       testMatch: [
         '<rootDir>/src/components/**/*.test.tsx',
         '<rootDir>/src/hooks/**/*.test.tsx',
+        '<rootDir>/src/lib/**/*.test.tsx',
+        '<rootDir>/src/theme/**/*.test.tsx',
         '<rootDir>/tests/screens/**/*.test.tsx',
       ],
       moduleNameMapper,

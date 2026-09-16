@@ -1,8 +1,9 @@
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, Layout, Type } from '@/theme';
+import { haptics } from '@/lib/haptics';
+import { Layout, makeThemedStyles, Type } from '@/theme';
 
 export const TAB_LABELS: Record<string, string> = {
   index: 'NOTES',
@@ -16,6 +17,7 @@ export const TAB_LABELS: Record<string, string> = {
  */
 export function KraftTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const styles = useStyles();
 
   return (
     <View style={[styles.bar, { paddingBottom: insets.bottom + Layout.space.sm }]}>
@@ -31,6 +33,7 @@ export function KraftTabBar({ state, navigation }: BottomTabBarProps) {
             accessibilityState={focused ? { selected: true } : {}}
             style={styles.tab}
             onPress={() => {
+              haptics.selection();
               const event = navigation.emit({
                 type: 'tabPress',
                 target: route.key,
@@ -40,8 +43,7 @@ export function KraftTabBar({ state, navigation }: BottomTabBarProps) {
                 navigation.navigate(route.name);
               }
             }}>
-            <Text
-              style={[Type.tabLabel, { color: focused ? Colors.accent : Colors.text.secondary }]}>
+            <Text style={[Type.tabLabel, focused ? styles.focusedLabel : styles.unfocusedLabel]}>
               {label}
             </Text>
           </Pressable>
@@ -51,13 +53,15 @@ export function KraftTabBar({ state, navigation }: BottomTabBarProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeThemedStyles((c) => ({
   bar: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: c.surface.card,
     borderTopWidth: Layout.hairline,
-    borderTopColor: Colors.border.hairline,
+    borderTopColor: c.border.hairline,
     paddingTop: Layout.space.md,
   },
   tab: { flex: 1, alignItems: 'center' },
-});
+  focusedLabel: { color: c.accent },
+  unfocusedLabel: { color: c.text.secondary },
+}));

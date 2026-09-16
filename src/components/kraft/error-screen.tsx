@@ -1,6 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { Colors, Layout, Type } from '@/theme';
+import { Layout, makeThemedStyles, Type } from '@/theme';
 
 import { Stamp } from './stamp';
 
@@ -15,6 +15,8 @@ export type ErrorScreenProps = {
  * migrated — never silently continue on an unknown schema (spec §8).
  */
 export function ErrorScreen({ title, detail, onRetry }: ErrorScreenProps) {
+  const styles = useStyles();
+
   return (
     <View style={styles.root}>
       <Stamp label="error" tone="onPaper" />
@@ -29,23 +31,23 @@ export function ErrorScreen({ title, detail, onRetry }: ErrorScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeThemedStyles((c) => ({
   root: {
     flex: 1,
-    backgroundColor: Colors.surface.page,
+    backgroundColor: c.surface.page,
     alignItems: 'flex-start',
     justifyContent: 'center',
     padding: Layout.space.xl,
     gap: Layout.space.md,
   },
-  title: { color: Colors.text.primary },
-  detail: { color: Colors.text.secondary },
+  title: { color: c.text.primary },
+  detail: { color: c.text.secondary },
   retry: {
     marginTop: Layout.space.md,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: Layout.radius.card,
     paddingHorizontal: Layout.space.lg,
     paddingVertical: Layout.space.md,
   },
-  retryText: { color: Colors.text.onKraft },
-});
+  retryText: { color: c.text.onKraft },
+}));

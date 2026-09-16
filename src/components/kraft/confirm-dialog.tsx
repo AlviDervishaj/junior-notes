@@ -1,6 +1,7 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 
-import { Colors, Layout, Type } from '@/theme';
+import { haptics } from '@/lib/haptics';
+import { Layout, makeThemedStyles, Type } from '@/theme';
 
 export type ConfirmDialogProps = {
   visible: boolean;
@@ -19,6 +20,8 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const styles = useStyles();
+
   if (!visible) return null;
 
   return (
@@ -29,10 +32,22 @@ export function ConfirmDialog({
           {detail ? <Text style={[Type.excerpt, styles.detail]}>{detail}</Text> : null}
 
           <View style={styles.actions}>
-            <Pressable testID="confirm-cancel" onPress={onCancel} style={styles.cancel}>
+            <Pressable
+              testID="confirm-cancel"
+              onPress={() => {
+                haptics.light();
+                onCancel();
+              }}
+              style={styles.cancel}>
               <Text style={[Type.tabLabel, styles.cancelText]}>CANCEL</Text>
             </Pressable>
-            <Pressable testID="confirm-accept" onPress={onConfirm} style={styles.accept}>
+            <Pressable
+              testID="confirm-accept"
+              onPress={() => {
+                haptics.heavy();
+                onConfirm();
+              }}
+              style={styles.accept}>
               <Text style={[Type.tabLabel, styles.acceptText]}>{confirmLabel}</Text>
             </Pressable>
           </View>
@@ -42,25 +57,25 @@ export function ConfirmDialog({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeThemedStyles((c) => ({
   scrim: {
     flex: 1,
-    backgroundColor: 'rgba(34, 48, 63, 0.45)',
+    backgroundColor: c.surface.scrim,
     alignItems: 'center',
     justifyContent: 'center',
     padding: Layout.space.xl,
   },
   sheet: {
     width: '100%',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: c.surface.card,
     borderRadius: Layout.radius.card,
     borderWidth: Layout.hairline,
-    borderColor: Colors.border.card,
+    borderColor: c.border.card,
     padding: Layout.space.lg,
     gap: Layout.space.sm,
   },
-  title: { color: Colors.text.primary },
-  detail: { color: Colors.text.secondary },
+  title: { color: c.text.primary },
+  detail: { color: c.text.secondary },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -71,15 +86,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Layout.space.lg,
     paddingVertical: Layout.space.md,
     borderWidth: Layout.hairline,
-    borderColor: Colors.border.hairline,
+    borderColor: c.border.hairline,
     borderRadius: Layout.radius.chip,
   },
-  cancelText: { color: Colors.text.secondary },
+  cancelText: { color: c.text.secondary },
   accept: {
     paddingHorizontal: Layout.space.lg,
     paddingVertical: Layout.space.md,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderRadius: Layout.radius.chip,
   },
-  acceptText: { color: Colors.text.onKraft },
-});
+  acceptText: { color: c.text.onKraft },
+}));

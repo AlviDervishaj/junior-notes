@@ -1,8 +1,8 @@
 import { CATEGORIES, categoryById } from '@/theme/categories';
-import { Colors, Palette } from '@/theme/colors';
+import { Palette, PaletteDark, Schemes } from '@/theme/colors';
 import { Layout } from '@/theme/layout';
 
-const HEX = /^#[0-9A-F]{6}$/;
+const HEX = /^#[0-9A-F]{6}([0-9A-F]{2})?$/;
 
 describe('palette', () => {
   test('matches the approved Kraft & Ink values', () => {
@@ -15,31 +15,38 @@ describe('palette', () => {
     expect(Palette.rule).toBe('#D6C8AC');
   });
 
-  test('every value is an uppercase 6-digit hex', () => {
+  test('every value is an uppercase 6-digit or 8-digit hex', () => {
     for (const value of Object.values(Palette)) expect(value).toMatch(HEX);
+    for (const value of Object.values(PaletteDark)) expect(value).toMatch(HEX);
   });
 });
 
 describe('semantic roles', () => {
-  test('resolve to values present in the palette', () => {
+  test('light roles resolve to values present in the light palette', () => {
     const known = new Set<string>(Object.values(Palette));
     const roles = [
-      Colors.text.primary, Colors.text.secondary, Colors.text.onKraft,
-      Colors.surface.page, Colors.surface.card, Colors.surface.cover,
-      Colors.accent, Colors.border.hairline, Colors.highlight,
+      Schemes.light.text.primary, Schemes.light.text.secondary, Schemes.light.text.onKraft,
+      Schemes.light.surface.page, Schemes.light.surface.card, Schemes.light.surface.cover,
+      Schemes.light.accent, Schemes.light.border.hairline, Schemes.light.highlight,
     ];
     for (const role of roles) expect(known.has(role)).toBe(true);
   });
 
-  test('there is no dark variant', () => {
-    expect(Colors).not.toHaveProperty('dark');
+  test('dark roles resolve to values present in the dark palette', () => {
+    const known = new Set<string>(Object.values(PaletteDark));
+    const roles = [
+      Schemes.dark.text.primary, Schemes.dark.text.secondary, Schemes.dark.text.onKraft,
+      Schemes.dark.surface.page, Schemes.dark.surface.card, Schemes.dark.surface.cover,
+      Schemes.dark.accent, Schemes.dark.border.hairline, Schemes.dark.highlight,
+    ];
+    for (const role of roles) expect(known.has(role)).toBe(true);
   });
 });
 
 describe('categories', () => {
   test('are the four approved categories with the approved colours', () => {
     expect(CATEGORIES.map((c) => c.id)).toEqual(['lists', 'home', 'ideas', 'notes']);
-    expect(CATEGORIES.map((c) => c.color)).toEqual(['#D69B26', '#2F6C69', '#9C4A33', '#A6AC8A']);
+    expect(CATEGORIES.map((c) => c.colors.light)).toEqual(['#D69B26', '#2F6C69', '#9C4A33', '#A6AC8A']);
   });
 
   test('ids are unique', () => {
