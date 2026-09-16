@@ -8,6 +8,7 @@ import { Layout, makeThemedStyles, Type } from '@/theme';
 export const TAB_LABELS: Record<string, string> = {
   index: 'NOTES',
   search: 'FIND',
+  trash: 'TRASH',
 };
 
 /**

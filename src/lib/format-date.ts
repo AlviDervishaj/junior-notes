@@ -35,3 +35,16 @@ export function countWords(text: string): number {
   const trimmed = text.trim();
   return trimmed === '' ? 0 : trimmed.split(/\s+/).length;
 }
+
+/**
+ * Formats the number of days remaining until automatic permanent purge.
+ */
+export function formatDaysRemaining(
+  deletedAt: number,
+  now: number,
+  purgeAfterMs: number = 30 * 86_400_000
+): string {
+  const remainingMs = purgeAfterMs - (now - deletedAt);
+  const remainingDays = Math.max(1, Math.ceil(remainingMs / 86_400_000));
+  return remainingDays === 1 ? '1 DAY LEFT' : `${remainingDays} DAYS LEFT`;
+}

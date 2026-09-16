@@ -44,6 +44,10 @@ export type Note = {
   updatedAt: number;
 };
 
+export type DeletedNote = Note & {
+  deletedAt: number;
+};
+
 /** Maps a raw row to the domain type, normalising SQLite's integer booleans. */
 export function rowToNote(row: NoteRow): Note {
   return {
@@ -54,5 +58,12 @@ export function rowToNote(row: NoteRow): Note {
     pinned: row.pinned === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+export function rowToDeletedNote(row: NoteRow): DeletedNote {
+  return {
+    ...rowToNote(row),
+    deletedAt: row.deleted_at ?? row.updated_at,
   };
 }

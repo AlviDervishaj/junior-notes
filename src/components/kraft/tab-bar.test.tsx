@@ -20,6 +20,7 @@ function makeProps(
       routes: [
         { key: 'index-1', name: 'index' },
         { key: 'search-1', name: 'search' },
+        { key: 'trash-1', name: 'trash' },
       ],
     },
     navigation: { emit, navigate },
@@ -32,6 +33,7 @@ describe('KraftTabBar', () => {
     await render(<KraftTabBar {...makeProps()} />);
     expect(screen.getByText(TAB_LABELS.index)).toBeOnTheScreen();
     expect(screen.getByText(TAB_LABELS.search)).toBeOnTheScreen();
+    expect(screen.getByText(TAB_LABELS.trash)).toBeOnTheScreen();
   });
 
   test('tints the active tab with the accent colour', async () => {

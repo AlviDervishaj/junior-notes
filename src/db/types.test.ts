@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { rowToNote, type NoteRow, type SqlDb } from '@/db/types';
+import { rowToDeletedNote, rowToNote, type NoteRow, type SqlDb } from '@/db/types';
 
 /**
  * Compile-time guard: the real expo-sqlite database must remain assignable to
@@ -53,5 +53,24 @@ describe('rowToNote', () => {
 
   test('does not expose deleted_at on the domain type', () => {
     expect(rowToNote(row({ deleted_at: 99 }))).not.toHaveProperty('deletedAt');
+  });
+});
+
+describe('rowToDeletedNote', () => {
+  test('maps snake_case columns and includes deletedAt timestamp', () => {
+    expect(rowToDeletedNote(row({ deleted_at: 99 }))).toEqual({
+      id: 1,
+      title: 'Grocery list',
+      body: 'milk',
+      category: null,
+      pinned: false,
+      createdAt: 10,
+      updatedAt: 20,
+      deletedAt: 99,
+    });
+  });
+
+  test('falls back to updatedAt if deleted_at is null', () => {
+    expect(rowToDeletedNote(row({ deleted_at: null, updated_at: 20 })).deletedAt).toBe(20);
   });
 });

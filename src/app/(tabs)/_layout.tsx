@@ -10,6 +10,7 @@ export default function TabsLayout() {
     <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <KraftTabBar {...props} />}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="search" />
+      <Tabs.Screen name="trash" />
     </Tabs>
   );
 }

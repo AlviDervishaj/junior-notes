@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ConfirmDialog } from '@/components/kraft/confirm-dialog';
+import { ExportNoteDialog } from '@/components/kraft/export-note-dialog';
 import { Paper } from '@/components/kraft/paper';
 import { SplitNoteDialog } from '@/components/kraft/split-note-dialog';
 import {
@@ -27,10 +28,20 @@ import {
 import { useAutosave } from '@/hooks/use-autosave';
 import { useNote } from '@/hooks/use-note';
 import { useNow } from '@/hooks/use-now';
+import { shareNoteContent, type ExportFormat } from '@/lib/export-note';
 import { countWords, formatNoteDate } from '@/lib/format-date';
 import { haptics } from '@/lib/haptics';
 import { splitNoteContent, type SplitNoteResult } from '@/lib/split-note';
-import { CATEGORIES, Layout, makeThemedStyles, Schemes, Type, useScheme, type NoteCategory } from '@/theme';
+import {
+  categoryById,
+  CATEGORIES,
+  Layout,
+  makeThemedStyles,
+  Schemes,
+  Type,
+  useScheme,
+  type NoteCategory,
+} from '@/theme';
 
 type Draft = { title: string; body: string };
 
@@ -56,6 +67,7 @@ export default function EditorScreen() {
   const { note, loading } = useNote(existingId);
   const [confirming, setConfirming] = useState(false);
   const [splitting, setSplitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [splitPreview, setSplitPreview] = useState<SplitNoteResult | null>(null);
   const [pinned, setPinnedLocal] = useState(false);
   const [category, setCategoryLocal] = useState<NoteCategory | null>(null);
@@ -144,6 +156,26 @@ export default function EditorScreen() {
     setSplitPreview(res);
     setSplitting(true);
   }, [draft.body, draft.title, flush]);
+
+  const handleOpenExport = useCallback(async () => {
+    haptics.medium();
+    await flush();
+    setExporting(true);
+  }, [flush]);
+
+  const handleShareNote = useCallback(
+    async (format: ExportFormat) => {
+      setExporting(false);
+      const cat = categoryById(category);
+      await shareNoteContent({
+        title: draft.title,
+        body: draft.body,
+        format,
+        categoryLabel: cat?.label,
+      });
+    },
+    [category, draft.body, draft.title]
+  );
 
   const handleConfirmSplit = useCallback(async () => {
     if (!splitPreview) return;
@@ -243,6 +275,9 @@ export default function EditorScreen() {
               <Pressable testID="action-split" onPress={handleOpenSplit} hitSlop={8}>
                 <Text style={[Type.tabLabel, styles.action]}>SPLIT</Text>
               </Pressable>
+              <Pressable testID="action-share" onPress={handleOpenExport} hitSlop={8}>
+                <Text style={[Type.tabLabel, styles.action]}>SHARE</Text>
+              </Pressable>
               {CATEGORIES.map((option) => (
                 <Pressable
                   key={option.id}
@@ -302,6 +337,15 @@ export default function EditorScreen() {
         second={splitPreview?.second ?? { title: '', body: '' }}
         onConfirm={handleConfirmSplit}
         onCancel={() => setSplitting(false)}
+      />
+
+      <ExportNoteDialog
+        visible={exporting}
+        title={draft.title}
+        body={draft.body}
+        categoryLabel={categoryById(category)?.label}
+        onShare={handleShareNote}
+        onCancel={() => setExporting(false)}
       />
     </View>
   );

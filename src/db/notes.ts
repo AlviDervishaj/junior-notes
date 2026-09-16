@@ -1,7 +1,15 @@
 import { escapeLike, LIKE_ESCAPE_CHAR } from '@/lib/like';
 import type { NoteCategory } from '@/theme/categories';
 
-import { rowToNote, type Note, type NoteRow, type SqlDb, type SqlValue } from './types';
+import {
+  rowToDeletedNote,
+  rowToNote,
+  type DeletedNote,
+  type Note,
+  type NoteRow,
+  type SqlDb,
+  type SqlValue,
+} from './types';
 
 const SELECT_NOTE = `
   SELECT id, title, body, category, pinned, created_at, updated_at, deleted_at
@@ -113,6 +121,23 @@ export async function softDelete(db: SqlDb, id: number, now: number): Promise<vo
 
 export async function restore(db: SqlDb, id: number): Promise<void> {
   await db.runAsync('UPDATE notes SET deleted_at = NULL WHERE id = ?', [id]);
+}
+
+/** Lists all soft-deleted notes, ordered newest deleted first. */
+export async function listDeletedNotes(db: SqlDb): Promise<DeletedNote[]> {
+  const rows = await db.getAllAsync<NoteRow>(
+    `${SELECT_NOTE}
+     WHERE deleted_at IS NOT NULL
+     ORDER BY deleted_at DESC`,
+    []
+  );
+  return rows.map(rowToDeletedNote);
+}
+
+/** Permanently deletes all soft-deleted notes from the trash. */
+export async function emptyTrash(db: SqlDb): Promise<number> {
+  const result = await db.runAsync('DELETE FROM notes WHERE deleted_at IS NOT NULL', []);
+  return result.changes;
 }
 
 /** Used for notes abandoned empty — nothing to restore, so no soft delete. */

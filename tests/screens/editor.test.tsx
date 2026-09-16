@@ -214,4 +214,29 @@ describe('EditorScreen actions', () => {
       expect.any(Number)
     );
   });
+
+  test('share action prompts export dialog and invokes shareNoteContent on confirm', async () => {
+    mockNote = {
+      id: 3,
+      title: 'Weekly Standup',
+      body: 'Review sprint progress',
+      category: 'notes',
+      pinned: false,
+      createdAt: 1,
+      updatedAt: 1,
+    };
+
+    await render(<EditorScreen />);
+
+    await fireEvent.press(screen.getByTestId('action-share'));
+
+    expect(screen.getByText('EXPORT & SHARE')).toBeOnTheScreen();
+    expect(screen.getByText('MARKDOWN PREVIEW')).toBeOnTheScreen();
+    expect(screen.getByTestId('export-preview-content')).toHaveTextContent(
+      '# Weekly Standup\n\n*Category: Notes*\n\nReview sprint progress'
+    );
+
+    await fireEvent.press(screen.getByTestId('export-confirm'));
+    expect(screen.queryByText('EXPORT & SHARE')).toBeNull();
+  });
 });

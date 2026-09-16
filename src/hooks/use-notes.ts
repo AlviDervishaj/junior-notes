@@ -2,8 +2,8 @@ import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 
-import { listNotes, searchNotes } from '@/db/notes';
-import type { Note } from '@/db/types';
+import { listDeletedNotes, listNotes, searchNotes } from '@/db/notes';
+import type { DeletedNote, Note } from '@/db/types';
 import type { NoteCategory } from '@/theme/categories';
 
 /**
@@ -34,6 +34,40 @@ export function useNotes(
     setNotes(rows);
     setLoading(false);
   }, [category, db, query]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void load().catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [load])
+  );
+
+  return { notes, loading, reload: () => void load() };
+}
+
+/**
+ * Soft-deleted notes for the Trash view.
+ * Re-queries when the screen comes into focus.
+ */
+export function useTrashNotes(): {
+  notes: DeletedNote[];
+  loading: boolean;
+  reload: () => void;
+} {
+  const db = useSQLiteContext();
+  const [notes, setNotes] = useState<DeletedNote[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    const rows = await listDeletedNotes(db);
+    setNotes(rows);
+    setLoading(false);
+  }, [db]);
 
   useFocusEffect(
     useCallback(() => {

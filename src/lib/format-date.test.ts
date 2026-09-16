@@ -1,4 +1,4 @@
-import { countWords, formatNoteDate } from '@/lib/format-date';
+import { countWords, formatDaysRemaining, formatNoteDate } from '@/lib/format-date';
 
 // Fixed clock: Wednesday 9 September 2026, 14:32 local time.
 const NOW = new Date(2026, 8, 9, 14, 32, 0).getTime();
@@ -54,5 +54,24 @@ describe('countWords', () => {
     ['multiple   spaces', 2],
   ])('counts %j as %i', (input, expected) => {
     expect(countWords(input as string)).toBe(expected);
+  });
+});
+
+describe('formatDaysRemaining', () => {
+  const DAY = 86_400_000;
+  test('returns 30 days left immediately after deletion', () => {
+    expect(formatDaysRemaining(NOW, NOW)).toBe('30 DAYS LEFT');
+  });
+
+  test('returns 20 days left after 10 days', () => {
+    expect(formatDaysRemaining(NOW - 10 * DAY, NOW)).toBe('20 DAYS LEFT');
+  });
+
+  test('returns 1 day left on the final day', () => {
+    expect(formatDaysRemaining(NOW - 29.5 * DAY, NOW)).toBe('1 DAY LEFT');
+  });
+
+  test('returns 1 day left when time expired', () => {
+    expect(formatDaysRemaining(NOW - 31 * DAY, NOW)).toBe('1 DAY LEFT');
   });
 });

@@ -1,6 +1,6 @@
 import { migrate } from '@/db/migrations';
 import {
-  createNote, getNote, hardDelete, listNotes, PURGE_AFTER_MS,
+  createNote, emptyTrash, getNote, hardDelete, listDeletedNotes, listNotes, PURGE_AFTER_MS,
   purgeOldDeleted, restore, setCategory, setPinned, softDelete,
 } from '@/db/notes';
 import type { SqlDb } from '@/db/types';
@@ -151,5 +151,41 @@ describe('purgeOldDeleted', () => {
     await createNote(db, { title: 'alive', now: T0 });
     await purgeOldDeleted(db, T0 + PURGE_AFTER_MS * 10);
     expect((await listNotes(db)).map((n) => n.title)).toEqual(['alive']);
+  });
+});
+
+describe('listDeletedNotes and emptyTrash', () => {
+  test('lists all deleted notes ordered newest deleted first', async () => {
+    const db = await freshDb();
+    const id1 = await createNote(db, { title: 'First deleted', now: T0 });
+    const id2 = await createNote(db, { title: 'Second deleted', now: T0 + 10 });
+    await createNote(db, { title: 'Active note', now: T0 + 20 });
+
+    await softDelete(db, id1, T0 + 100);
+    await softDelete(db, id2, T0 + 200);
+
+    const deletedList = await listDeletedNotes(db);
+    expect(deletedList).toHaveLength(2);
+    expect(deletedList.map((n) => n.title)).toEqual(['Second deleted', 'First deleted']);
+    expect(deletedList[0].deletedAt).toBe(T0 + 200);
+    expect(deletedList[1].deletedAt).toBe(T0 + 100);
+  });
+
+  test('emptyTrash deletes all soft-deleted notes permanently', async () => {
+    const db = await freshDb();
+    const id1 = await createNote(db, { title: 'Note 1', now: T0 });
+    const id2 = await createNote(db, { title: 'Note 2', now: T0 + 1 });
+    const idActive = await createNote(db, { title: 'Note Active', now: T0 + 2 });
+
+    await softDelete(db, id1, T0 + 10);
+    await softDelete(db, id2, T0 + 20);
+
+    const count = await emptyTrash(db);
+    expect(count).toBe(2);
+
+    expect(await listDeletedNotes(db)).toEqual([]);
+    expect(await getNote(db, id1)).toBeNull();
+    expect(await getNote(db, id2)).toBeNull();
+    expect(await getNote(db, idActive)).not.toBeNull();
   });
 });
