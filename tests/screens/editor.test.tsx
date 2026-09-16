@@ -10,6 +10,7 @@ const mockHardDelete = jest.fn().mockResolvedValue(undefined);
 const mockSoftDelete = jest.fn().mockResolvedValue(undefined);
 const mockSetPinned = jest.fn().mockResolvedValue(undefined);
 const mockSetCategory = jest.fn().mockResolvedValue(undefined);
+const mockSplitNote = jest.fn().mockResolvedValue(8);
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
 let mockParams: { id: string } = { id: 'new' };
@@ -30,6 +31,7 @@ jest.mock('@/db/notes', () => ({
   softDelete: (...args: unknown[]) => mockSoftDelete(...args),
   setPinned: (...args: unknown[]) => mockSetPinned(...args),
   setCategory: (...args: unknown[]) => mockSetCategory(...args),
+  splitNote: (...args: unknown[]) => mockSplitNote(...args),
 }));
 
 jest.mock('@/hooks/use-note', () => ({
@@ -176,5 +178,40 @@ describe('EditorScreen actions', () => {
 
     await fireEvent.press(screen.getByTestId('action-category-home'));
     expect(mockSetCategory).toHaveBeenLastCalledWith({}, 3, null, expect.any(Number));
+  });
+
+  test('split action prompts confirmation dialog with preview and splits note on confirm', async () => {
+    mockNote = {
+      id: 3,
+      title: 'Full Meeting',
+      body: 'Top topic\n---\nBottom topic',
+      category: 'ideas',
+      pinned: false,
+      createdAt: 1,
+      updatedAt: 1,
+    };
+
+    await render(<EditorScreen />);
+
+    await fireEvent.press(screen.getByTestId('action-split'));
+
+    expect(screen.getAllByText('SPLIT NOTE').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId('split-preview-part1')).toBeOnTheScreen();
+    expect(screen.getByTestId('split-preview-part2')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId('split-confirm-accept'));
+
+    expect(mockSplitNote).toHaveBeenCalledWith(
+      {},
+      3,
+      {
+        firstTitle: 'Full Meeting',
+        firstBody: 'Top topic',
+        secondTitle: 'Full Meeting (Part 2)',
+        secondBody: 'Bottom topic',
+        category: 'ideas',
+      },
+      expect.any(Number)
+    );
   });
 });

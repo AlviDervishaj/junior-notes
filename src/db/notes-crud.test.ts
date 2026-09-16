@@ -1,5 +1,5 @@
 import { migrate } from '@/db/migrations';
-import { createNote, getNote, updateNote } from '@/db/notes';
+import { createNote, getNote, splitNote, updateNote } from '@/db/notes';
 import type { SqlDb } from '@/db/types';
 import { createTestDb } from '../../tests/support/test-db';
 
@@ -98,5 +98,55 @@ describe('updateNote', () => {
     expect(await getNote(db, id)).toMatchObject({ title: nasty, body: nasty });
     // The table must still exist.
     expect(await getNote(db, id)).not.toBeNull();
+  });
+});
+
+describe('splitNote', () => {
+  test('updates the original note with Part 1 and creates a new note for Part 2', async () => {
+    const db = await freshDb();
+    const originalId = await createNote(db, {
+      title: 'Original Title',
+      body: 'Full content',
+      category: 'ideas',
+      now: T0,
+    });
+
+    const newId = await splitNote(
+      db,
+      originalId,
+      {
+        firstTitle: 'Part 1',
+        firstBody: 'First half',
+        secondTitle: 'Part 2',
+        secondBody: 'Second half',
+        category: 'ideas',
+      },
+      T0 + 100
+    );
+
+    expect(newId).toBeGreaterThan(0);
+    expect(newId).not.toBe(originalId);
+
+    const first = await getNote(db, originalId);
+    expect(first).toEqual({
+      id: originalId,
+      title: 'Part 1',
+      body: 'First half',
+      category: 'ideas',
+      pinned: false,
+      createdAt: T0,
+      updatedAt: T0 + 100,
+    });
+
+    const second = await getNote(db, newId);
+    expect(second).toEqual({
+      id: newId,
+      title: 'Part 2',
+      body: 'Second half',
+      category: 'ideas',
+      pinned: false,
+      createdAt: T0 + 100,
+      updatedAt: T0 + 100,
+    });
   });
 });

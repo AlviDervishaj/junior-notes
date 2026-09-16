@@ -75,4 +75,17 @@ describe('searchNotes', () => {
     await createNote(db, { title: 'note two', now: T0 + 100 });
     expect((await searchNotes(db, 'note')).map((n) => n.title)).toEqual(['note two', 'note one']);
   });
+
+  test('filters search results by category', async () => {
+    const db = createTestDb();
+    await migrate(db);
+    await createNote(db, { title: 'Shopping note', category: 'lists', now: T0 });
+    await createNote(db, { title: 'Shopping budget', category: 'home', now: T0 + 10 });
+
+    const listsMatch = await searchNotes(db, 'Shopping', 'lists');
+    expect(listsMatch.map((n) => n.title)).toEqual(['Shopping note']);
+
+    const homeMatch = await searchNotes(db, 'Shopping', 'home');
+    expect(homeMatch.map((n) => n.title)).toEqual(['Shopping budget']);
+  });
 });

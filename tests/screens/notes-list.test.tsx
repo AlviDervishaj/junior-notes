@@ -65,8 +65,10 @@ describe('NotesScreen', () => {
     expect(screen.getByText('NO ENTRIES YET')).toBeOnTheScreen();
   });
 
-  test('renders the new-note button', async () => {
+  test('renders category filter buttons', async () => {
     await render(<NotesScreen />);
-    expect(screen.getByTestId('fab')).toBeOnTheScreen();
+    expect(screen.getByTestId('category-filter-all')).toBeOnTheScreen();
+    expect(screen.getByTestId('category-filter-lists')).toBeOnTheScreen();
+    expect(screen.getByTestId('category-filter-ideas')).toBeOnTheScreen();
   });
 });

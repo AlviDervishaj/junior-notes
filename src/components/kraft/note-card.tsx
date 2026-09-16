@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Note } from '@/db/types';
 import { formatNoteDate } from '@/lib/format-date';
 import { splitOnMatch } from '@/lib/highlight';
-import { Colors, Layout, Type } from '@/theme';
+import { categoryById, Colors, Layout, Type } from '@/theme';
 
 import { CategorySquare } from './category-square';
 
@@ -16,6 +16,8 @@ export type NoteCardProps = {
 };
 
 export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
+  const category = categoryById(note.category);
+
   return (
     <Pressable
       testID={`note-card-${note.id}`}
@@ -43,7 +45,19 @@ export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
       )}
 
       <View style={styles.metaRow}>
-        <Text style={[Type.metaLabel, styles.date]}>{formatNoteDate(note.updatedAt, now)}</Text>
+        <View style={styles.leftMeta}>
+          <Text style={[Type.metaLabel, styles.date]}>{formatNoteDate(note.updatedAt, now)}</Text>
+          {category ? (
+            <View
+              testID={`note-category-badge-${note.id}`}
+              style={[styles.categoryBadge, { borderColor: category.color }]}>
+              <Text style={[styles.categoryBadgeText, { color: category.color }]}>
+                {category.label.toUpperCase()}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
         {note.pinned ? (
           <View style={styles.pin}>
             <Text style={[Type.stampLabel, styles.pinText]}>PINNED</Text>
@@ -75,7 +89,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: Layout.space.sm,
   },
+  leftMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Layout.space.sm,
+  },
   date: { color: Colors.text.secondary },
+  categoryBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: Layout.radius.chip,
+    borderWidth: Layout.hairline,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
+  categoryBadgeText: {
+    fontSize: 7.5,
+    letterSpacing: 0.8,
+    fontFamily: Type.metaLabel.fontFamily,
+  },
   match: { backgroundColor: Colors.highlight },
   pin: {
     backgroundColor: Colors.accent,

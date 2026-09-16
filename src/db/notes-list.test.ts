@@ -52,6 +52,19 @@ describe('listNotes', () => {
 
     expect((await listNotes(db)).map((n) => n.id)).toEqual([keep]);
   });
+
+  test('filters by category when category parameter is provided', async () => {
+    const db = await freshDb();
+    await createNote(db, { title: 'ideas note', category: 'ideas', now: T0 });
+    await createNote(db, { title: 'home note', category: 'home', now: T0 + 1 });
+    await createNote(db, { title: 'lists note', category: 'lists', now: T0 + 2 });
+
+    const ideaNotes = await listNotes(db, 'ideas');
+    expect(ideaNotes.map((n) => n.title)).toEqual(['ideas note']);
+
+    const homeNotes = await listNotes(db, 'home');
+    expect(homeNotes.map((n) => n.title)).toEqual(['home note']);
+  });
 });
 
 describe('setPinned', () => {

@@ -64,12 +64,18 @@ export async function updateNote(
 /** Soft-deleted notes are purged after this long (spec §6). */
 export const PURGE_AFTER_MS = 30 * 86_400_000;
 
-export async function listNotes(db: SqlDb): Promise<Note[]> {
+export async function listNotes(db: SqlDb, category?: NoteCategory | null): Promise<Note[]> {
+  const whereClause =
+    category !== undefined && category !== null
+      ? 'WHERE deleted_at IS NULL AND category = ?'
+      : 'WHERE deleted_at IS NULL';
+  const params: SqlValue[] = category !== undefined && category !== null ? [category] : [];
+
   const rows = await db.getAllAsync<NoteRow>(
     `${SELECT_NOTE}
-     WHERE deleted_at IS NULL
+     ${whereClause}
      ORDER BY pinned DESC, updated_at DESC`,
-    []
+    params
   );
   return rows.map(rowToNote);
 }
@@ -127,6 +133,43 @@ export async function purgeOldDeleted(
   return result.changes;
 }
 
+export type SplitNoteInput = {
+  firstTitle: string;
+  firstBody: string;
+  secondTitle: string;
+  secondBody: string;
+  category?: NoteCategory | null;
+};
+
+/**
+ * Splits an existing note into two separate notes:
+ * updates the original note with Part 1 and inserts a new note with Part 2.
+ * Returns the new note's id.
+ */
+export async function splitNote(
+  db: SqlDb,
+  id: number,
+  input: SplitNoteInput,
+  now: number
+): Promise<number> {
+  const { firstTitle, firstBody, secondTitle, secondBody, category = null } = input;
+
+  await db.runAsync(
+    `UPDATE notes
+     SET title = ?, body = ?, updated_at = ?
+     WHERE id = ?`,
+    [firstTitle, firstBody, now, id]
+  );
+
+  const result = await db.runAsync(
+    `INSERT INTO notes (title, body, category, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [secondTitle, secondBody, category, now, now]
+  );
+
+  return result.lastInsertRowId;
+}
+
 /**
  * Case-insensitive substring search over title and body.
  *
@@ -137,18 +180,30 @@ export async function purgeOldDeleted(
  * LIKE_ESCAPE_CHAR is a module constant rather than user input, so embedding it
  * in the SQL text is safe; the search term itself is bound.
  */
-export async function searchNotes(db: SqlDb, query: string): Promise<Note[]> {
+export async function searchNotes(
+  db: SqlDb,
+  query: string,
+  category?: NoteCategory | null
+): Promise<Note[]> {
   const trimmed = query.trim();
   if (trimmed === '') return [];
 
   const pattern = `%${escapeLike(trimmed)}%`;
+  const categoryFilter =
+    category !== undefined && category !== null ? ' AND category = ?' : '';
+  const params: SqlValue[] =
+    category !== undefined && category !== null
+      ? [pattern, pattern, category]
+      : [pattern, pattern];
+
   const rows = await db.getAllAsync<NoteRow>(
     `${SELECT_NOTE}
      WHERE deleted_at IS NULL
        AND (title LIKE ? ESCAPE '${LIKE_ESCAPE_CHAR}'
          OR body  LIKE ? ESCAPE '${LIKE_ESCAPE_CHAR}')
+       ${categoryFilter}
      ORDER BY updated_at DESC`,
-    [pattern, pattern]
+    params
   );
   return rows.map(rowToNote);
 }

@@ -15,18 +15,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ConfirmDialog } from '@/components/kraft/confirm-dialog';
 import { Paper } from '@/components/kraft/paper';
+import { SplitNoteDialog } from '@/components/kraft/split-note-dialog';
 import {
   createNote,
   hardDelete,
   setCategory,
   setPinned,
   softDelete,
+  splitNote,
   updateNote,
 } from '@/db/notes';
 import { useAutosave } from '@/hooks/use-autosave';
 import { useNote } from '@/hooks/use-note';
 import { useNow } from '@/hooks/use-now';
 import { countWords, formatNoteDate } from '@/lib/format-date';
+import { splitNoteContent, type SplitNoteResult } from '@/lib/split-note';
 import { CATEGORIES, Colors, Layout, Type, type NoteCategory } from '@/theme';
 
 type Draft = { title: string; body: string };
@@ -50,6 +53,8 @@ export default function EditorScreen() {
 
   const { note, loading } = useNote(existingId);
   const [confirming, setConfirming] = useState(false);
+  const [splitting, setSplitting] = useState(false);
+  const [splitPreview, setSplitPreview] = useState<SplitNoteResult | null>(null);
   const [pinned, setPinnedLocal] = useState(false);
   const [category, setCategoryLocal] = useState<NoteCategory | null>(null);
   const [draft, setDraft] = useState<Draft>({ title: '', body: '' });
@@ -121,6 +126,51 @@ export default function EditorScreen() {
     [category, db, withSavedNote]
   );
 
+  const handleOpenSplit = useCallback(async () => {
+    await flush();
+    const res = splitNoteContent(draft.title, draft.body);
+    setSplitPreview(res);
+    setSplitting(true);
+  }, [draft.body, draft.title, flush]);
+
+  const handleConfirmSplit = useCallback(async () => {
+    if (!splitPreview) return;
+    const now = Date.now();
+    if (noteIdRef.current === null) {
+      const id1 = await createNote(db, {
+        title: splitPreview.first.title,
+        body: splitPreview.first.body,
+        category,
+        now,
+      });
+      noteIdRef.current = id1;
+      await createNote(db, {
+        title: splitPreview.second.title,
+        body: splitPreview.second.body,
+        category,
+        now,
+      });
+    } else {
+      await splitNote(
+        db,
+        noteIdRef.current,
+        {
+          firstTitle: splitPreview.first.title,
+          firstBody: splitPreview.first.body,
+          secondTitle: splitPreview.second.title,
+          secondBody: splitPreview.second.body,
+          category,
+        },
+        now
+      );
+    }
+    setDraft({
+      title: splitPreview.first.title,
+      body: splitPreview.first.body,
+    });
+    setSplitting(false);
+  }, [category, db, splitPreview]);
+
   const remove = useCallback(async () => {
     setConfirming(false);
     const deletedId = noteIdRef.current;
@@ -176,10 +226,14 @@ export default function EditorScreen() {
               <Pressable testID="action-pin" onPress={togglePin} hitSlop={8}>
                 <Text style={[Type.tabLabel, styles.action]}>{pinned ? 'UNPIN' : 'PIN'}</Text>
               </Pressable>
+              <Pressable testID="action-split" onPress={handleOpenSplit} hitSlop={8}>
+                <Text style={[Type.tabLabel, styles.action]}>SPLIT</Text>
+              </Pressable>
               {CATEGORIES.map((option) => (
                 <Pressable
                   key={option.id}
                   testID={`action-category-${option.id}`}
+                  accessibilityLabel={`Category ${option.label}`}
                   onPress={() => chooseCategory(option.id)}
                   hitSlop={8}>
                   <View
@@ -220,6 +274,14 @@ export default function EditorScreen() {
         confirmLabel="DELETE"
         onConfirm={remove}
         onCancel={() => setConfirming(false)}
+      />
+
+      <SplitNoteDialog
+        visible={splitting}
+        first={splitPreview?.first ?? { title: '', body: '' }}
+        second={splitPreview?.second ?? { title: '', body: '' }}
+        onConfirm={handleConfirmSplit}
+        onCancel={() => setSplitting(false)}
       />
     </View>
   );

@@ -3,6 +3,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
+import { CategoryFilter } from '@/components/kraft/category-filter';
 import { CoverHeader } from '@/components/kraft/cover-header';
 import { EmptyState } from '@/components/kraft/empty-state';
 import { Fab } from '@/components/kraft/fab';
@@ -12,12 +13,13 @@ import { UndoBar } from '@/components/kraft/undo-bar';
 import { restore } from '@/db/notes';
 import { useNotes } from '@/hooks/use-notes';
 import { useNow } from '@/hooks/use-now';
-import { Layout } from '@/theme';
+import { categoryById, Layout, type NoteCategory } from '@/theme';
 
 export default function NotesScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
-  const { notes, reload } = useNotes();
+  const [selectedCategory, setSelectedCategory] = useState<NoteCategory | null>(null);
+  const { notes, reload } = useNotes(undefined, selectedCategory);
   const now = useNow();
 
   // The editor hands the deleted id back as a route param so the undo
@@ -32,13 +34,23 @@ export default function NotesScreen() {
     deleted !== undefined && deleted !== dismissed && Number.isFinite(undoId);
 
   const entryCount = notes.length === 1 ? '1 entry' : `${notes.length} entries`;
+  const activeLabel =
+    selectedCategory !== null ? categoryById(selectedCategory)?.label : null;
+  const subtitle =
+    activeLabel != null
+      ? `${entryCount} · in ${activeLabel.toLowerCase()}`
+      : `${entryCount} · all saved`;
 
   return (
     <View style={styles.root}>
       <CoverHeader
         title="Notebook"
-        subtitle={`${entryCount} · all saved`}
+        subtitle={subtitle}
         stamp={`no. ${String(notes.length).padStart(3, '0')} · field`}
+      />
+      <CategoryFilter
+        selected={selectedCategory}
+        onSelect={(cat) => setSelectedCategory(cat)}
       />
       <Paper>
         <FlatList
@@ -50,8 +62,12 @@ export default function NotesScreen() {
           ListEmptyComponent={
             <EmptyState
               stamp="blank page"
-              title="NO ENTRIES YET"
-              detail="Tap the button below to write your first note."
+              title={selectedCategory ? `NO ${activeLabel?.toUpperCase()} NOTES` : 'NO ENTRIES YET'}
+              detail={
+                selectedCategory
+                  ? `No notes found under the ${activeLabel?.toLowerCase()} label.`
+                  : 'Tap the button below to write your first note.'
+              }
             />
           }
           contentContainerStyle={styles.list}

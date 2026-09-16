@@ -4,15 +4,20 @@ import { useCallback, useState } from 'react';
 
 import { listNotes, searchNotes } from '@/db/notes';
 import type { Note } from '@/db/types';
+import type { NoteCategory } from '@/theme/categories';
 
 /**
  * Notes for the list or, when `query` is given, for a search.
+ * Supports optional category filtering.
  *
  * Re-reads on focus rather than holding a client cache: SQLite is the cache,
  * and at a personal notebook's scale re-querying is simpler and strictly more
  * correct than diffing in memory (spec §4.4).
  */
-export function useNotes(query?: string): {
+export function useNotes(
+  query?: string,
+  category?: NoteCategory | null
+): {
   notes: Note[];
   loading: boolean;
   reload: () => void;
@@ -22,10 +27,13 @@ export function useNotes(query?: string): {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const rows = query === undefined ? await listNotes(db) : await searchNotes(db, query);
+    const rows =
+      query === undefined
+        ? await listNotes(db, category)
+        : await searchNotes(db, query, category);
     setNotes(rows);
     setLoading(false);
-  }, [db, query]);
+  }, [category, db, query]);
 
   useFocusEffect(
     useCallback(() => {

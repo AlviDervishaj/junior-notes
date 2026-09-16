@@ -48,6 +48,8 @@ describe('NoteCard', () => {
   test('renders the category square when categorised', async () => {
     await render(<NoteCard note={note({ category: 'lists' })} now={NOW} onPress={jest.fn()} />);
     expect(screen.getByTestId('category-square-lists')).toBeOnTheScreen();
+    expect(screen.getByTestId('note-category-badge-1')).toBeOnTheScreen();
+    expect(screen.getByText('LISTS')).toBeOnTheScreen();
   });
 
   test('calls onPress with the note id', async () => {

@@ -3,18 +3,20 @@ import { useState } from 'react';
 import { FlatList, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CategoryFilter } from '@/components/kraft/category-filter';
 import { EmptyState } from '@/components/kraft/empty-state';
 import { NoteCard } from '@/components/kraft/note-card';
 import { Paper } from '@/components/kraft/paper';
 import { useNotes } from '@/hooks/use-notes';
 import { useNow } from '@/hooks/use-now';
-import { Colors, Layout, Type } from '@/theme';
+import { Colors, Layout, type NoteCategory, Type } from '@/theme';
 
 export default function SearchScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
-  const { notes } = useNotes(query);
+  const [selectedCategory, setSelectedCategory] = useState<NoteCategory | null>(null);
+  const { notes } = useNotes(query, selectedCategory);
   const now = useNow();
 
   const searching = query.trim() !== '';
@@ -33,6 +35,10 @@ export default function SearchScreen() {
           style={[Type.metaLabel, styles.input]}
         />
       </View>
+      <CategoryFilter
+        selected={selectedCategory}
+        onSelect={(cat) => setSelectedCategory(cat)}
+      />
 
       <Paper>
         <FlatList
