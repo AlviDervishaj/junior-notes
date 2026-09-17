@@ -71,4 +71,13 @@ describe('NotesScreen', () => {
     expect(screen.getByTestId('category-filter-lists')).toBeOnTheScreen();
     expect(screen.getByTestId('category-filter-ideas')).toBeOnTheScreen();
   });
+
+  test('renders sort selector and options', async () => {
+    await render(<NotesScreen />);
+    expect(screen.getByTestId('sort-selector')).toBeOnTheScreen();
+    expect(screen.getByTestId('sort-option-updated_desc')).toBeOnTheScreen();
+    expect(screen.getByTestId('sort-option-created_desc')).toBeOnTheScreen();
+    expect(screen.getByTestId('sort-option-title_asc')).toBeOnTheScreen();
+    expect(screen.getByTestId('sort-option-checklist')).toBeOnTheScreen();
+  });
 });

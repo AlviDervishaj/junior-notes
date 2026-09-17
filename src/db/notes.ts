@@ -1,3 +1,4 @@
+import { getChecklistSummary } from '@/lib/checklist';
 import { escapeLike, LIKE_ESCAPE_CHAR } from '@/lib/like';
 import type { NoteCategory } from '@/theme/categories';
 
@@ -72,20 +73,58 @@ export async function updateNote(
 /** Soft-deleted notes are purged after this long (spec §6). */
 export const PURGE_AFTER_MS = 30 * 86_400_000;
 
-export async function listNotes(db: SqlDb, category?: NoteCategory | null): Promise<Note[]> {
+export type NoteSortOption =
+  | 'updated_desc'
+  | 'created_desc'
+  | 'created_asc'
+  | 'title_asc'
+  | 'checklist';
+
+export async function listNotes(
+  db: SqlDb,
+  category?: NoteCategory | null,
+  sort: NoteSortOption = 'updated_desc'
+): Promise<Note[]> {
   const whereClause =
     category !== undefined && category !== null
       ? 'WHERE deleted_at IS NULL AND category = ?'
       : 'WHERE deleted_at IS NULL';
   const params: SqlValue[] = category !== undefined && category !== null ? [category] : [];
 
+  let orderClause = 'ORDER BY pinned DESC, updated_at DESC';
+  if (sort === 'created_desc') {
+    orderClause = 'ORDER BY pinned DESC, created_at DESC';
+  } else if (sort === 'created_asc') {
+    orderClause = 'ORDER BY pinned DESC, created_at ASC';
+  } else if (sort === 'title_asc') {
+    orderClause =
+      'ORDER BY pinned DESC, LOWER(CASE WHEN TRIM(title) = \'\' THEN body ELSE title END) ASC';
+  }
+
   const rows = await db.getAllAsync<NoteRow>(
     `${SELECT_NOTE}
      ${whereClause}
-     ORDER BY pinned DESC, updated_at DESC`,
+     ${orderClause}`,
     params
   );
-  return rows.map(rowToNote);
+  const notes = rows.map(rowToNote);
+
+  if (sort === 'checklist') {
+    return notes.sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      const aSummary = getChecklistSummary(a.body);
+      const bSummary = getChecklistSummary(b.body);
+      if (aSummary.remaining !== bSummary.remaining) {
+        return bSummary.remaining - aSummary.remaining;
+      }
+      if (aSummary.total !== bSummary.total) {
+        return bSummary.total - aSummary.total;
+      }
+      return b.updatedAt - a.updatedAt;
+    });
+  }
+
+  return notes;
 }
 
 export async function setPinned(
@@ -208,7 +247,8 @@ export async function splitNote(
 export async function searchNotes(
   db: SqlDb,
   query: string,
-  category?: NoteCategory | null
+  category?: NoteCategory | null,
+  sort: NoteSortOption = 'updated_desc'
 ): Promise<Note[]> {
   const trimmed = query.trim();
   if (trimmed === '') return [];
@@ -221,14 +261,41 @@ export async function searchNotes(
       ? [pattern, pattern, category]
       : [pattern, pattern];
 
+  let orderClause = 'ORDER BY pinned DESC, updated_at DESC';
+  if (sort === 'created_desc') {
+    orderClause = 'ORDER BY pinned DESC, created_at DESC';
+  } else if (sort === 'created_asc') {
+    orderClause = 'ORDER BY pinned DESC, created_at ASC';
+  } else if (sort === 'title_asc') {
+    orderClause =
+      'ORDER BY pinned DESC, LOWER(CASE WHEN TRIM(title) = \'\' THEN body ELSE title END) ASC';
+  }
+
   const rows = await db.getAllAsync<NoteRow>(
     `${SELECT_NOTE}
      WHERE deleted_at IS NULL
        AND (title LIKE ? ESCAPE '${LIKE_ESCAPE_CHAR}'
          OR body  LIKE ? ESCAPE '${LIKE_ESCAPE_CHAR}')
        ${categoryFilter}
-     ORDER BY updated_at DESC`,
+     ${orderClause}`,
     params
   );
-  return rows.map(rowToNote);
+  const notes = rows.map(rowToNote);
+
+  if (sort === 'checklist') {
+    return notes.sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      const aSummary = getChecklistSummary(a.body);
+      const bSummary = getChecklistSummary(b.body);
+      if (aSummary.remaining !== bSummary.remaining) {
+        return bSummary.remaining - aSummary.remaining;
+      }
+      if (aSummary.total !== bSummary.total) {
+        return bSummary.total - aSummary.total;
+      }
+      return b.updatedAt - a.updatedAt;
+    });
+  }
+
+  return notes;
 }

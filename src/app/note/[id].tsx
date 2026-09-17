@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ConfirmDialog } from '@/components/kraft/confirm-dialog';
 import { ExportNoteDialog } from '@/components/kraft/export-note-dialog';
+import { InteractiveChecklist } from '@/components/kraft/interactive-checklist';
 import { MarkdownToolbar } from '@/components/kraft/markdown-toolbar';
 import { Paper } from '@/components/kraft/paper';
 import { SplitNoteDialog } from '@/components/kraft/split-note-dialog';
@@ -29,7 +30,12 @@ import {
 import { useAutosave } from '@/hooks/use-autosave';
 import { useNote } from '@/hooks/use-note';
 import { useNow } from '@/hooks/use-now';
-import { applyMarkdownFormat, type MarkdownAction } from '@/lib/checklist';
+import {
+  applyMarkdownFormat,
+  getChecklistSummary,
+  toggleTaskAtLine,
+  type MarkdownAction,
+} from '@/lib/checklist';
 import { shareNoteContent, type ExportFormat } from '@/lib/export-note';
 import { countWords, formatNoteDate } from '@/lib/format-date';
 import { haptics } from '@/lib/haptics';
@@ -70,6 +76,7 @@ export default function EditorScreen() {
   const [confirming, setConfirming] = useState(false);
   const [splitting, setSplitting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
   const [splitPreview, setSplitPreview] = useState<SplitNoteResult | null>(null);
   const [pinned, setPinnedLocal] = useState(false);
   const [category, setCategoryLocal] = useState<NoteCategory | null>(null);
@@ -77,6 +84,8 @@ export default function EditorScreen() {
   const [selection, setSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
   const noteIdRef = useRef<number | null>(existingId);
   const hydrated = useRef(false);
+
+  const checklistSummary = getChecklistSummary(draft.body);
 
   useEffect(() => {
     if (note && !hydrated.current) {
@@ -133,6 +142,14 @@ export default function EditorScreen() {
       setSelection(result.selection);
     },
     [draft.body, edit, selection]
+  );
+
+  const handleToggleTask = useCallback(
+    (lineIndex: number) => {
+      const nextBody = toggleTaskAtLine(draft.body, lineIndex);
+      edit({ body: nextBody });
+    },
+    [draft.body, edit]
   );
 
   const withSavedNote = useCallback(
@@ -284,6 +301,23 @@ export default function EditorScreen() {
               <Pressable testID="action-pin" onPress={togglePin} hitSlop={8}>
                 <Text style={[Type.tabLabel, styles.action]}>{pinned ? 'UNPIN' : 'PIN'}</Text>
               </Pressable>
+              {checklistSummary.total > 0 && (
+                <Pressable
+                  testID="action-checklist"
+                  onPress={() => {
+                    haptics.selection();
+                    setShowChecklist((prev) => !prev);
+                  }}
+                  hitSlop={8}>
+                  <Text
+                    style={[
+                      Type.tabLabel,
+                      showChecklist ? styles.actionActive : styles.action,
+                    ]}>
+                    {`TASKS (${checklistSummary.completed}/${checklistSummary.total})`}
+                  </Text>
+                </Pressable>
+              )}
               <Pressable testID="action-split" onPress={handleOpenSplit} hitSlop={8}>
                 <Text style={[Type.tabLabel, styles.action]}>SPLIT</Text>
               </Pressable>
@@ -316,6 +350,14 @@ export default function EditorScreen() {
                 <Text style={[Type.tabLabel, styles.destructive]}>DELETE</Text>
               </Pressable>
             </View>
+
+            {showChecklist && (
+              <InteractiveChecklist
+                body={draft.body}
+                onToggleTask={handleToggleTask}
+                onClose={() => setShowChecklist(false)}
+              />
+            )}
 
             <View style={styles.bodyWrap}>
               <View style={styles.marginRule} />
@@ -391,6 +433,7 @@ const useStyles = makeThemedStyles((c) => ({
     marginBottom: Layout.space.lg,
   },
   action: { color: c.text.secondary },
+  actionActive: { color: c.accent, fontWeight: '600' },
   destructive: { color: c.accent, marginLeft: 'auto' },
   categoryDot: { width: 14, height: 14, borderRadius: Layout.radius.chip, opacity: 0.45 },
   categoryDotActive: { opacity: 1 },

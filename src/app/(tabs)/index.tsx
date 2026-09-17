@@ -9,8 +9,9 @@ import { EmptyState } from '@/components/kraft/empty-state';
 import { Fab } from '@/components/kraft/fab';
 import { NoteCard } from '@/components/kraft/note-card';
 import { Paper } from '@/components/kraft/paper';
+import { SortSelector } from '@/components/kraft/sort-selector';
 import { UndoBar } from '@/components/kraft/undo-bar';
-import { restore } from '@/db/notes';
+import { restore, type NoteSortOption } from '@/db/notes';
 import { useNotes } from '@/hooks/use-notes';
 import { useNow } from '@/hooks/use-now';
 import { categoryById, Layout, type NoteCategory } from '@/theme';
@@ -19,7 +20,8 @@ export default function NotesScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
   const [selectedCategory, setSelectedCategory] = useState<NoteCategory | null>(null);
-  const { notes, reload } = useNotes(undefined, selectedCategory);
+  const [sortOption, setSortOption] = useState<NoteSortOption>('updated_desc');
+  const { notes, reload } = useNotes(undefined, selectedCategory, sortOption);
   const now = useNow();
 
   // The editor hands the deleted id back as a route param so the undo
@@ -51,6 +53,10 @@ export default function NotesScreen() {
       <CategoryFilter
         selected={selectedCategory}
         onSelect={(cat) => setSelectedCategory(cat)}
+      />
+      <SortSelector
+        selected={sortOption}
+        onSelect={(sort) => setSortOption(sort)}
       />
       <Paper>
         <FlatList

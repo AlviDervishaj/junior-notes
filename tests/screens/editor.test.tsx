@@ -300,3 +300,54 @@ describe('EditorScreen markdown toolbar', () => {
     expect(bodyInput).toHaveProp('value', 'Section 1\n---\n');
   });
 });
+
+describe('EditorScreen interactive checklist', () => {
+  beforeEach(() => {
+    mockParams = { id: '3' };
+    mockNote = {
+      id: 3,
+      title: 'Errands',
+      body: '- [ ] Buy groceries\n- [x] Send package',
+      category: 'lists',
+      pinned: false,
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    mockLoading = false;
+    jest.clearAllMocks();
+  });
+
+  test('shows tasks action button with summary count when note has checklist items', async () => {
+    await render(<EditorScreen />);
+
+    expect(screen.getByTestId('action-checklist')).toBeOnTheScreen();
+    expect(screen.getByText('TASKS (1/2)')).toBeOnTheScreen();
+  });
+
+  test('toggles interactive checklist panel on and off', async () => {
+    await render(<EditorScreen />);
+
+    expect(screen.queryByTestId('interactive-checklist')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('action-checklist'));
+    expect(screen.getByTestId('interactive-checklist')).toBeOnTheScreen();
+    expect(screen.getByText('1/2 COMPLETED (50%)')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId('checklist-close-btn'));
+    expect(screen.queryByTestId('interactive-checklist')).toBeNull();
+  });
+
+  test('toggles task item when pressed in the interactive checklist', async () => {
+    await render(<EditorScreen />);
+
+    await fireEvent.press(screen.getByTestId('action-checklist'));
+    expect(screen.getByTestId('interactive-checklist')).toBeOnTheScreen();
+
+    // Toggle task 0: from [ ] to [x]
+    await fireEvent.press(screen.getByTestId('task-item-0'));
+
+    const bodyInput = screen.getByTestId('body-input');
+    expect(bodyInput).toHaveProp('value', '- [x] Buy groceries\n- [x] Send package');
+    expect(screen.getByText('TASKS (2/2)')).toBeOnTheScreen();
+  });
+});

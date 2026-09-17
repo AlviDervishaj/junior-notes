@@ -2,13 +2,13 @@ import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 
-import { listDeletedNotes, listNotes, searchNotes } from '@/db/notes';
+import { listDeletedNotes, listNotes, searchNotes, type NoteSortOption } from '@/db/notes';
 import type { DeletedNote, Note } from '@/db/types';
 import type { NoteCategory } from '@/theme/categories';
 
 /**
  * Notes for the list or, when `query` is given, for a search.
- * Supports optional category filtering.
+ * Supports optional category filtering and sort preference.
  *
  * Re-reads on focus rather than holding a client cache: SQLite is the cache,
  * and at a personal notebook's scale re-querying is simpler and strictly more
@@ -16,7 +16,8 @@ import type { NoteCategory } from '@/theme/categories';
  */
 export function useNotes(
   query?: string,
-  category?: NoteCategory | null
+  category?: NoteCategory | null,
+  sort?: NoteSortOption
 ): {
   notes: Note[];
   loading: boolean;
@@ -29,11 +30,11 @@ export function useNotes(
   const load = useCallback(async () => {
     const rows =
       query === undefined
-        ? await listNotes(db, category)
-        : await searchNotes(db, query, category);
+        ? await listNotes(db, category, sort)
+        : await searchNotes(db, query, category, sort);
     setNotes(rows);
     setLoading(false);
-  }, [category, db, query]);
+  }, [category, db, query, sort]);
 
   useFocusEffect(
     useCallback(() => {

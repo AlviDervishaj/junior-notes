@@ -65,6 +65,42 @@ describe('listNotes', () => {
     const homeNotes = await listNotes(db, 'home');
     expect(homeNotes.map((n) => n.title)).toEqual(['home note']);
   });
+
+  test('sorts by created_desc and created_asc', async () => {
+    const db = await freshDb();
+    const id1 = await createNote(db, { title: 'first', now: T0 });
+    await createNote(db, { title: 'second', now: T0 + 100 });
+    await createNote(db, { title: 'third', now: T0 + 200 });
+
+    // Update first note later so its updated_at is newest
+    await setCategory(db, id1, 'notes', T0 + 500);
+
+    const newestCreated = await listNotes(db, null, 'created_desc');
+    expect(newestCreated.map((n) => n.title)).toEqual(['third', 'second', 'first']);
+
+    const oldestCreated = await listNotes(db, null, 'created_asc');
+    expect(oldestCreated.map((n) => n.title)).toEqual(['first', 'second', 'third']);
+  });
+
+  test('sorts alphabetically by title (title_asc)', async () => {
+    const db = await freshDb();
+    await createNote(db, { title: 'Zebra', now: T0 });
+    await createNote(db, { title: 'Apple', now: T0 + 1 });
+    await createNote(db, { title: 'Mango', now: T0 + 2 });
+
+    const alphabetical = await listNotes(db, null, 'title_asc');
+    expect(alphabetical.map((n) => n.title)).toEqual(['Apple', 'Mango', 'Zebra']);
+  });
+
+  test('sorts by checklist tasks (uncompleted tasks first)', async () => {
+    const db = await freshDb();
+    await createNote(db, { title: 'No tasks', body: 'Plain note', now: T0 });
+    await createNote(db, { title: 'Done tasks', body: '- [x] task 1\n- [x] task 2', now: T0 + 1 });
+    await createNote(db, { title: 'Pending tasks', body: '- [ ] buy milk\n- [ ] do laundry', now: T0 + 2 });
+
+    const checklistSorted = await listNotes(db, null, 'checklist');
+    expect(checklistSorted.map((n) => n.title)).toEqual(['Pending tasks', 'Done tasks', 'No tasks']);
+  });
 });
 
 describe('setPinned', () => {
