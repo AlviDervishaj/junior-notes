@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, TextInput, View } from 'react-native';
+import { FlatList, Pressable, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 
 import { CategoryFilter } from '@/components/kraft/category-filter';
 import { EmptyState } from '@/components/kraft/empty-state';
@@ -26,16 +27,35 @@ export default function SearchScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.bar, { paddingTop: insets.top + Layout.space.sm }]}>
-        <TextInput
-          testID="search-input"
-          value={query}
-          onChangeText={setQuery}
-          placeholder="find in all entries…"
-          placeholderTextColor={Schemes[scheme].text.secondary}
-          autoCorrect={false}
-          autoCapitalize="none"
-          style={[Type.metaLabel, styles.input]}
-        />
+        <View style={styles.inputContainer}>
+          <Feather
+            name="search"
+            size={15}
+            color={Schemes[scheme].text.secondary}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            testID="search-input"
+            value={query}
+            onChangeText={setQuery}
+            placeholder="find in all entries…"
+            placeholderTextColor={Schemes[scheme].text.secondary}
+            autoCorrect={false}
+            autoCapitalize="none"
+            style={[Type.metaLabel, styles.input]}
+          />
+          {searching && (
+            <Pressable
+              testID="search-clear-btn"
+              accessibilityRole="button"
+              accessibilityLabel="Clear search text"
+              onPress={() => setQuery('')}
+              hitSlop={8}
+              style={styles.clearButton}>
+              <Feather name="x" size={14} color={Schemes[scheme].text.secondary} />
+            </Pressable>
+          )}
+        </View>
       </View>
       <CategoryFilter
         selected={selectedCategory}
@@ -80,15 +100,27 @@ const useStyles = makeThemedStyles((c) => ({
     paddingHorizontal: Layout.space.lg,
     paddingBottom: Layout.space.md,
   },
-  input: {
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: c.surface.card,
     borderWidth: Layout.hairline,
     borderColor: c.border.card,
     borderRadius: Layout.radius.card,
-    color: c.text.primary,
     paddingHorizontal: Layout.space.md,
+  },
+  searchIcon: {
+    marginRight: Layout.space.xs,
+    opacity: 0.8,
+  },
+  input: {
+    flex: 1,
+    color: c.text.primary,
     paddingVertical: Layout.space.md,
     fontSize: 13,
+  },
+  clearButton: {
+    padding: Layout.space.xs,
   },
   list: { paddingBottom: Layout.space.xxl * 2 },
 }));

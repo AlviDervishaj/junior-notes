@@ -1,7 +1,8 @@
-import { Pressable, Text } from 'react-native';
+import { Pressable } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 import { haptics } from '@/lib/haptics';
-import { FontFamily, Layout, makeThemedStyles } from '@/theme';
+import { Layout, makeThemedStyles, useScheme, Schemes } from '@/theme';
 
 export type FabProps = {
   onPress: () => void;
@@ -10,6 +11,8 @@ export type FabProps = {
 
 export function Fab({ onPress, accessibilityLabel }: FabProps) {
   const styles = useStyles();
+  const scheme = useScheme();
+  const colors = Schemes[scheme];
 
   return (
     <Pressable
@@ -21,7 +24,7 @@ export function Fab({ onPress, accessibilityLabel }: FabProps) {
         onPress();
       }}
       style={({ pressed }) => [styles.fab, pressed && styles.pressed]}>
-      <Text style={styles.plus}>+</Text>
+      <Feather name="plus" size={24} color={colors.text.onKraft} />
     </Pressable>
   );
 }
@@ -44,10 +47,4 @@ const useStyles = makeThemedStyles((c) => ({
     elevation: 4,
   },
   pressed: { opacity: 0.82, transform: [{ scale: 0.96 }] },
-  plus: {
-    color: c.text.onKraft,
-    fontFamily: FontFamily.chrome,
-    fontSize: 26,
-    lineHeight: 30,
-  },
 }));

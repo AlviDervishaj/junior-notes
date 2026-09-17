@@ -71,6 +71,6 @@ describe('NoteCard', () => {
     await render(<NoteCard note={note({ body: taskBody })} now={NOW} onPress={jest.fn()} />);
 
     expect(screen.getByTestId('note-checklist-badge-1')).toBeOnTheScreen();
-    expect(screen.getByText('☑ 2/3')).toBeOnTheScreen();
+    expect(screen.getByText('2/3')).toBeOnTheScreen();
   });
 });

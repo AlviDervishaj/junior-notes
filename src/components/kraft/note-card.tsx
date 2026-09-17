@@ -1,11 +1,12 @@
 import { Pressable, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 import type { Note } from '@/db/types';
 import { getChecklistSummary } from '@/lib/checklist';
 import { formatNoteDate } from '@/lib/format-date';
 import { haptics } from '@/lib/haptics';
 import { splitOnMatch } from '@/lib/highlight';
-import { categoryById, Layout, makeThemedStyles, Type, useScheme } from '@/theme';
+import { categoryById, Layout, makeThemedStyles, Type, useScheme, Schemes } from '@/theme';
 
 import { CategorySquare } from './category-square';
 
@@ -20,6 +21,7 @@ export type NoteCardProps = {
 export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
   const styles = useStyles();
   const scheme = useScheme();
+  const colors = Schemes[scheme];
   const category = categoryById(note.category);
   const categoryColor = category ? category.colors[scheme] : null;
   const checklist = getChecklistSummary(note.body);
@@ -69,8 +71,9 @@ export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
             <View
               testID={`note-checklist-badge-${note.id}`}
               style={styles.checklistBadge}>
+              <Feather name="check-square" size={8} color={colors.text.secondary} />
               <Text style={styles.checklistBadgeText}>
-                {`☑ ${checklist.completed}/${checklist.total}`}
+                {`${checklist.completed}/${checklist.total}`}
               </Text>
             </View>
           ) : null}
@@ -78,6 +81,7 @@ export function NoteCard({ note, now, onPress, highlight }: NoteCardProps) {
 
         {note.pinned ? (
           <View style={styles.pin}>
+            <Feather name="bookmark" size={7} color={colors.text.onKraft} />
             <Text style={[Type.stampLabel, styles.pinText]}>PINNED</Text>
           </View>
         ) : null}
@@ -126,6 +130,9 @@ const useStyles = makeThemedStyles((c) => ({
     fontFamily: Type.metaLabel.fontFamily,
   },
   checklistBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: Layout.radius.chip,
@@ -141,6 +148,9 @@ const useStyles = makeThemedStyles((c) => ({
   },
   match: { backgroundColor: c.highlight },
   pin: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: c.accent,
     borderRadius: Layout.radius.chip,
     paddingHorizontal: 5,

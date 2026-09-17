@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -65,6 +66,7 @@ export default function EditorScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
   const scheme = useScheme();
+  const colors = Schemes[scheme];
   const styles = useStyles();
   const insets = useSafeAreaInsets();
 
@@ -272,8 +274,13 @@ export default function EditorScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.bar, { paddingTop: insets.top + Layout.space.sm }]}>
-        <Pressable testID="editor-back" onPress={leave} hitSlop={12}>
-          <Text style={[Type.tabLabel, styles.barText]}>‹ NOTEBOOK</Text>
+        <Pressable
+          testID="editor-back"
+          onPress={leave}
+          hitSlop={12}
+          style={styles.backButton}>
+          <Feather name="chevron-left" size={16} color={colors.text.onKraft} />
+          <Text style={[Type.tabLabel, styles.barText]}>NOTEBOOK</Text>
         </Pressable>
         <Text testID="save-status" style={[Type.tabLabel, styles.barText]}>
           {STATUS_TEXT[status]}
@@ -298,8 +305,19 @@ export default function EditorScreen() {
             </Text>
 
             <View style={styles.actionRow}>
-              <Pressable testID="action-pin" onPress={togglePin} hitSlop={8}>
-                <Text style={[Type.tabLabel, styles.action]}>{pinned ? 'UNPIN' : 'PIN'}</Text>
+              <Pressable
+                testID="action-pin"
+                onPress={togglePin}
+                hitSlop={8}
+                style={styles.actionButton}>
+                <Feather
+                  name="bookmark"
+                  size={11}
+                  color={pinned ? colors.accent : colors.text.secondary}
+                />
+                <Text style={[Type.tabLabel, pinned ? styles.actionActive : styles.action]}>
+                  {pinned ? 'UNPIN' : 'PIN'}
+                </Text>
               </Pressable>
               {checklistSummary.total > 0 && (
                 <Pressable
@@ -308,7 +326,13 @@ export default function EditorScreen() {
                     haptics.selection();
                     setShowChecklist((prev) => !prev);
                   }}
-                  hitSlop={8}>
+                  hitSlop={8}
+                  style={styles.actionButton}>
+                  <Feather
+                    name="check-square"
+                    size={11}
+                    color={showChecklist ? colors.accent : colors.text.secondary}
+                  />
                   <Text
                     style={[
                       Type.tabLabel,
@@ -318,10 +342,20 @@ export default function EditorScreen() {
                   </Text>
                 </Pressable>
               )}
-              <Pressable testID="action-split" onPress={handleOpenSplit} hitSlop={8}>
+              <Pressable
+                testID="action-split"
+                onPress={handleOpenSplit}
+                hitSlop={8}
+                style={styles.actionButton}>
+                <Feather name="scissors" size={11} color={colors.text.secondary} />
                 <Text style={[Type.tabLabel, styles.action]}>SPLIT</Text>
               </Pressable>
-              <Pressable testID="action-share" onPress={handleOpenExport} hitSlop={8}>
+              <Pressable
+                testID="action-share"
+                onPress={handleOpenExport}
+                hitSlop={8}
+                style={styles.actionButton}>
+                <Feather name="share-2" size={11} color={colors.text.secondary} />
                 <Text style={[Type.tabLabel, styles.action]}>SHARE</Text>
               </Pressable>
               {CATEGORIES.map((option) => (
@@ -346,7 +380,9 @@ export default function EditorScreen() {
                   haptics.warning();
                   setConfirming(true);
                 }}
-                hitSlop={8}>
+                hitSlop={8}
+                style={[styles.actionButton, styles.destructiveAction]}>
+                <Feather name="trash-2" size={11} color={colors.accent} />
                 <Text style={[Type.tabLabel, styles.destructive]}>DELETE</Text>
               </Pressable>
             </View>
@@ -418,6 +454,11 @@ const useStyles = makeThemedStyles((c) => ({
     paddingHorizontal: Layout.space.lg,
     paddingBottom: Layout.space.md,
   },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
   barText: { color: c.text.onKraft },
   page: {
     flexGrow: 1,
@@ -432,9 +473,15 @@ const useStyles = makeThemedStyles((c) => ({
     gap: Layout.space.md,
     marginBottom: Layout.space.lg,
   },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   action: { color: c.text.secondary },
   actionActive: { color: c.accent, fontWeight: '600' },
-  destructive: { color: c.accent, marginLeft: 'auto' },
+  destructiveAction: { marginLeft: 'auto' },
+  destructive: { color: c.accent },
   categoryDot: { width: 14, height: 14, borderRadius: Layout.radius.chip, opacity: 0.45 },
   categoryDotActive: { opacity: 1 },
   bodyWrap: { flex: 1, flexDirection: 'row', gap: Layout.space.md },

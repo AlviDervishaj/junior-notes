@@ -1,8 +1,9 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 import type { NoteSortOption } from '@/db/notes';
 import { haptics } from '@/lib/haptics';
-import { Layout, makeThemedStyles, Type } from '@/theme';
+import { Layout, makeThemedStyles, Type, useScheme, Schemes } from '@/theme';
 
 export type SortSelectorProps = {
   selected: NoteSortOption;
@@ -12,18 +13,21 @@ export type SortSelectorProps = {
 type SortOption = {
   id: NoteSortOption;
   label: string;
+  icon: keyof typeof Feather.glyphMap;
   accessibilityLabel: string;
 };
 
 const SORT_OPTIONS: SortOption[] = [
-  { id: 'updated_desc', label: 'RECENT', accessibilityLabel: 'Sort by recently modified' },
-  { id: 'created_desc', label: 'NEWEST', accessibilityLabel: 'Sort by creation date newest first' },
-  { id: 'title_asc', label: 'A-Z', accessibilityLabel: 'Sort alphabetically A to Z' },
-  { id: 'checklist', label: 'TASKS', accessibilityLabel: 'Sort with uncompleted tasks first' },
+  { id: 'updated_desc', label: 'RECENT', icon: 'clock', accessibilityLabel: 'Sort by recently modified' },
+  { id: 'created_desc', label: 'NEWEST', icon: 'calendar', accessibilityLabel: 'Sort by creation date newest first' },
+  { id: 'title_asc', label: 'A-Z', icon: 'type', accessibilityLabel: 'Sort alphabetically A to Z' },
+  { id: 'checklist', label: 'TASKS', icon: 'check-square', accessibilityLabel: 'Sort with uncompleted tasks first' },
 ];
 
 export function SortSelector({ selected, onSelect }: SortSelectorProps) {
   const styles = useStyles();
+  const scheme = useScheme();
+  const colors = Schemes[scheme];
 
   return (
     <View testID="sort-selector" style={styles.container}>
@@ -50,6 +54,12 @@ export function SortSelector({ selected, onSelect }: SortSelectorProps) {
                 isActive && styles.chipActive,
                 pressed && styles.chipPressed,
               ]}>
+              <Feather
+                name={opt.icon}
+                size={9}
+                color={colors.text.onKraft}
+                style={[styles.chipIcon, isActive && styles.chipIconActive]}
+              />
               <Text
                 style={[
                   Type.metaLabel,
@@ -87,6 +97,9 @@ const useStyles = makeThemedStyles((c) => ({
     gap: Layout.space.xs,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: Layout.radius.chip,
@@ -100,6 +113,12 @@ const useStyles = makeThemedStyles((c) => ({
   },
   chipPressed: {
     opacity: 0.7,
+  },
+  chipIcon: {
+    opacity: 0.75,
+  },
+  chipIconActive: {
+    opacity: 1,
   },
   chipText: {
     color: c.text.onKraft,
