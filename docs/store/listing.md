@@ -33,16 +33,19 @@ Rejected: "A pocket notebook for your phone" is 32 — two over the limit.
     Write a note in one tap. It saves as you type. That is the whole app.
 
     WHAT IT LOOKS LIKE
-    Kraft paper, dot-grid pages and a typewriter face for your words. No
-    grey chrome, no glassy panels, no blue links. It was designed to feel
-    like the pocket notebook you already carry, not like an office tool.
+    Kraft paper, dot-grid pages and a typewriter face for your words.
+    Includes warm Lamplight dark mode for late-night jotting. No grey chrome,
+    no glassy panels, no blue links. It was designed to feel like the pocket
+    notebook you already carry, not like an office tool.
 
     WHAT IT DOES
     - Write notes with a title and body. Everything autosaves.
-    - Pin the notes you keep coming back to.
+    - Interactive checklists and quick Markdown formatting toolbar.
+    - Pin the notes you keep coming back to and sort by recency, date, or tasks.
+    - Split long notes and export or share clean Markdown and text files.
     - Sort notes into four categories, colour-coded at a glance.
     - Search every word you have written.
-    - Delete with an undo, in case you did not mean it.
+    - 30-day trash recovery and purge, with tactile haptic feedback throughout.
 
     WHAT IT DOES NOT DO
     - No account. There is nothing to sign up for.
